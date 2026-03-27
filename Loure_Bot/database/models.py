@@ -90,11 +90,6 @@ def init_db():
         ON profiles(created_at DESC)
         ''')
         
-        cursor.execute('''
-        CREATE INDEX IF NOT EXISTS idx_interactions_user 
-        ON interactions(user_id, target_user_id)
-        ''')
-        
         conn.commit()
         conn.close()
         
