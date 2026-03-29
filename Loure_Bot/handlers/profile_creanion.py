@@ -175,8 +175,8 @@ async def handle_photos(message: Message, state: FSMContext):
         if len(media) >= max_photos:
             await ask_name(message, state)
         else:
-            remaining = max_photos - len(media)
-            await message.answer(f"✅ Фото добавлено. Осталось: {remaining}")
+            if len(media) < max_photos:
+                await message.answer("пришли еще фото")
 
     except Exception as e:
         logger.error(f"Ошибка обработки фото: {e}")
@@ -200,8 +200,8 @@ async def handle_audio(message: Message, state: FSMContext):
         if len(media) == max_audio:
             await ask_name(message, state)
         else:
-                    remaining = max_audio - len(media)
-                    await message.answer(f"✅ Аудио добавлено. Осталось: {remaining}")
+                    if len(media) < max_audio:
+                	await message.answer("пришли еще аудио")
                 
     except Exception as e:
             logger.error(f"Ошибка обработки аудио: {e}")
