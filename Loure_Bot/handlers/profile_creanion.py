@@ -173,6 +173,12 @@ async def handle_photos(message: Message, state: FSMContext):
         await state.update_data(media=media)
         
         if len(media) >= max_photos:
+            # Если больше 8 — обрезаем
+            if len(media) > max_photos:
+                media = media[:max_photos]
+                await state.update_data(media=media)
+                await message.answer("⚠️ Одно фото было удалено (максимум 8)")
+            # Переходим к следующему шагу
             await ask_name(message, state)
 
     except Exception as e:
