@@ -198,15 +198,15 @@ async def handle_audio(message: Message, state: FSMContext):
         await state.update_data(media=media)
                 
         if len(media) >= max_audio:
-    if len(media) == max_audio:
-        await ask_name(message, state)
-    else:
-        media = media[:max_audio]
-        await state.update_data(media=media)
-        await message.answer("⚠️ Одно аудио было удалено (максимум 4)")
-        await ask_name(message, state)
-else:
-    await message.answer("🎵 Пришли еще аудио (нужно 4 файла MP3)")
+            if len(media) == max_audio:
+                await ask_name(message, state)
+            else:
+                media = media[:max_audio]
+                await state.update_data(media=media)
+                await message.answer("⚠️ Одно аудио было удалено (максимум 4)")
+                await ask_name(message, state)
+        else:
+            await message.answer("🎵 Пришли еще аудио (нужно 4 файла MP3)")
                 
     except Exception as e:
             logger.error(f"Ошибка обработки аудио: {e}")
