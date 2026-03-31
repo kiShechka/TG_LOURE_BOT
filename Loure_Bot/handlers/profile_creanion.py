@@ -174,9 +174,6 @@ async def handle_photos(message: Message, state: FSMContext):
         
         if len(media) >= max_photos:
             await ask_name(message, state)
-        else:
-            if len(media) < max_photos:
-                await message.answer("пришли еще фото")
 
     except Exception as e:
         logger.error(f"Ошибка обработки фото: {e}")
