@@ -13,7 +13,7 @@ from aiogram.enums import ParseMode
 from config import INDUSTRIES, TARGETS
 from utils.keyboard import get_target_keyboard
 from database.crud import get_profile_by_user_id, save_profile_crud
-from .profile_creation import send_full_profile 
+from .profile_creanion import send_full_profile 
 
 logger = logging.getLogger(__name__)
 edit_router = Router()
