@@ -18,7 +18,7 @@ from .profile_creanion import send_full_profile
 logger = logging.getLogger(__name__)
 edit_router = Router()
 
-@common_router.message(Command("edit"))
+@edit_router.message(Command("edit"))
 @edit_router.callback_query(F.data == "edit_profile")
 async def start_edit_profile(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
