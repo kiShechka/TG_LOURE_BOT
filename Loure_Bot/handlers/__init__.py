@@ -1,7 +1,4 @@
-from .profile_creanion import (
-    start_create_profile,
-    choose_industry,
-    handle_photos,
-    handle_audio, 
-    finish_profile
-)
+from .profile_creanion import profile_router
+from .profile_edit import edit_router
+
+__all__ = ['profile_router', 'edit_router']
