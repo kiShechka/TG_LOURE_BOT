@@ -237,7 +237,7 @@ async def finish_edit_profile(message: Message, state: FSMContext):
         await message.answer(
             "✅ Анкета успешно обновлена! Хотите просмотреть другие анкеты?",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="🔍 Смотреть анкеты", callback_data='view_profiles')]
+                [InlineKeyboardButton(text="Смотреть анкеты", callback_data='view_profiles')]
             ])
         )
         
