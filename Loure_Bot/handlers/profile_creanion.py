@@ -31,7 +31,6 @@ class ProfileCreation(StatesGroup):
     finish = State()
 
 async def send_full_profile(message: Message, profile: dict):
-    """Отправка полной анкеты пользователю"""
     try:
         caption = (
             f"👤 <b>{profile['name']}</b> ({INDUSTRIES[profile['industry']]['name']})\n\n"
@@ -209,7 +208,7 @@ async def handle_audio(message: Message, state: FSMContext):
                 await message.answer("⚠️ Одно аудио было удалено (максимум 4)")
                 await ask_name(message, state)
         else:
-            await message.answer("🎵 Пришли еще аудио (нужно 4 файла MP3)")
+            await message.answer("Пришли еще аудио (нужно 4 файла MP3)")
                 
     except Exception as e:
             logger.error(f"Ошибка обработки аудио: {e}")
@@ -259,7 +258,7 @@ async def get_target(callback: CallbackQuery, state: FSMContext):
         await state.update_data(target=target)
         
         await callback.message.edit_text(
-            "📌 Для завершения создания анкеты отправьте любой символ "
+            "Для завершения создания анкеты отправьте любой символ "
             "(например, точку или букву)\n\n"
             "Это подтвердит, что вы готовы сохранить анкету."
         )
@@ -310,7 +309,7 @@ async def finish_profile(message: Message, state: FSMContext, bot):
         await message.answer(
             "✅ Анкета успешно создана! Хотите просмотреть другие анкеты?",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="🔍 Смотреть анкеты", callback_data='view_profiles')]
+                [InlineKeyboardButton(text="Смотреть анкеты", callback_data='view_profiles')]
             ])
         )
         
