@@ -111,6 +111,7 @@ async def main():
     dp.include_router(view_router)
     dp.include_router(common_router)
     dp.include_router(admin_router)
+    dp.include_router(edit_routr)
     asyncio.create_task(scheduler())
         
 
