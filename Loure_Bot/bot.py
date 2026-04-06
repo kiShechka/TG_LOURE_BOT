@@ -6,7 +6,7 @@ from handlers.profile_view import view_router
 from handlers.common import common_router
 from handlers.admin import admin_router
 from handlers.info import info_router
-from handlers.profile_rdit import edit_router
+from handlers.profile_edit import edit_router
 
 from aiogram import Bot, Dispatcher, Router, F
 from aiogram.filters import Command, CommandStart, StateFilter
