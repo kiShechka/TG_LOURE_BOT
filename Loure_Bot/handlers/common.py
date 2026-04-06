@@ -81,52 +81,6 @@ async def cancel(message_or_callback: Message | CallbackQuery, state: FSMContext
         if isinstance(message_or_callback, Message):
             await message_or_callback.answer("Ошибка при отмене")
 
-@common_router.message(Command("edit"))
-@common_router.callback_query(F.data == "edit_profile")
-async def edit(message_or_callback: Message | CallbackQuery, state: FSMContext):
-    try:
-        user_id = None
-        if isinstance(message_or_callback, CallbackQuery):
-            user_id = message_or_callback.from_user.id
-        else:
-            user_id = message_or_callback.from_user.id
-        profile = await get_profile_by_user_id(user_id)
-        
-        if not profile:
-            error_text = "❌ У вас еще нет созданной анкет. Используйте /start чтобы создать анкету."
-            
-            if isinstance(message_or_callback, CallbackQuery):
-                await message_or_callback.answer(error_text, show_alert=True)
-            else:
-                await message_or_callback.answer(error_text)
-            return
-        await state.update_data(editing_profile_code=profile['code'])
-        
-        
-        if isinstance(message_or_callback, CallbackQuery):
-            from handlers.profile_creanion import start_create_profile
-            await start_create_profile(message_or_callback, state)
-        
-        else:
-            await message_or_callback.answer("🔄 Начинаем редактирование анкеты...")
-            
-            from handlers.profile_creanion import ProfileCreation
-            await state.set_state(ProfileCreation.choose_industry)
-
-            from utils.keyboard import get_industry_keyboard
-            await message_or_callback.answer(
-                "Выбери свою отрасль:",
-                reply_markup=get_industry_keyboard()
-            )
-    
-    except Exception as e:
-        logger.error(f"Ошибка в edit: {e}", exc_info=True)
-        
-        if isinstance(message_or_callback, CallbackQuery):
-            await message_or_callback.answer(f"❌ Ошибка: {str(e)}", show_alert=True)
-        else:
-            await message_or_callback.answer(f"❌ Ошибка: {str(e)}")
-
 
 @common_router.message(Command("delete"))
 async def delete_profile_user(message: Message):
