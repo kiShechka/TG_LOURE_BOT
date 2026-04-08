@@ -229,7 +229,6 @@ async def view_my_profile(message_or_callback: Message | CallbackQuery):
 
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✏️ Редактировать", callback_data='edit_profile')],
-            [InlineKeyboardButton(text="🗑️ Удалить", callback_data='delete_confirm')],
             [InlineKeyboardButton(text="🔍 Смотреть анкеты", callback_data='view_profiles')]
         ])
         
