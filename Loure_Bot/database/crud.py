@@ -375,22 +375,35 @@ async def get_users_with_profiles() -> list:
         return []
 
 
-async def get_today_visits(code: str) -> int:
-    today = date.today().isoformat()
+async def get_visit_count(code: str) -> int:
     try:
         async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
             async with db.execute(
-                "SELECT visits FROM daily_stats WHERE code = ? AND date = ?",
-                (code, today)
+                "SELECT visit_count FROM profiles WHERE code = ?", (code,)
             ) as cursor:
                 row = await cursor.fetchone()
-                return row[0] if row else 0
+                return row[0] if row and row[0] is not None else 0
     except Exception as e:
-        logger.error(f"Ошибка получения дневной статистики: {e}")
+        logger.error(f"Ошибка получения счётчика: {e}")
         return 0
 
+
+async def increment_visit_count(code: str) -> bool:
+    try:
+        async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
+            await db.execute(
+                "UPDATE profiles SET visit_count = visit_count + 1 WHERE code = ?",
+                (code,)
+            )
+            await db.commit()
+            return True
+    except Exception as e:
+        logger.error(f"Ошибка увеличения счётчика: {e}")
+        return False
+
+
 async def increment_daily_visit(code: str, user_id: int) -> bool:
-    today = date.today().isoformat()
+    today = datetime.now().date().isoformat()
     try:
         async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
             await db.execute('''
@@ -405,6 +418,22 @@ async def increment_daily_visit(code: str, user_id: int) -> bool:
         logger.error(f"Ошибка обновления дневной статистики: {e}")
         return False
 
+
+async def get_today_visits(code: str) -> int:
+    today = datetime.now().date().isoformat()
+    try:
+        async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
+            async with db.execute(
+                "SELECT visits FROM daily_stats WHERE code = ? AND date = ?",
+                (code, today)
+            ) as cursor:
+                row = await cursor.fetchone()
+                return row[0] if row else 0
+    except Exception as e:
+        logger.error(f"Ошибка получения дневной статистики: {e}")
+        return 0
+
+
 async def get_all_profile_codes() -> list:
     try:
         async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
@@ -413,11 +442,3 @@ async def get_all_profile_codes() -> list:
     except Exception as e:
         logger.error(f"Ошибка получения списка анкет: {e}")
         return []
-
-async def reset_daily_stats():
-    today = date.today().isoformat()
-    try:
-        async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
-            pass
-    except Exception as e:
-        logger.error(f"Ошибка сброса статистики: {e}")
