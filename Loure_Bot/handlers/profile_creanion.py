@@ -57,7 +57,7 @@ async def send_full_profile(message: Message, profile: dict):
                 media = media_group[0]
                 if isinstance(media, InputMediaPhoto):
                     await message.answer_photo(media.media, caption=media.caption, parse_mode=media.parse_mode)
-                else isinstance(media, InputMediaVideo):
+                elif isinstance(media, InputMediaVideo):
                     await message.answer_video(media.media, caption=media.caption, parse_mode=media.parse_mode)
             else:
                 await message.answer_media_group(media_group)
