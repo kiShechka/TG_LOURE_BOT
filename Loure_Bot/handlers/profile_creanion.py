@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import List, Tuple
 
 from aiogram import F, Router
-from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InputMediaAudio
+from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InputMediaVideo
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -46,19 +46,19 @@ async def send_full_profile(message: Message, profile: dict):
                     media_group.append(InputMediaPhoto(media=file_id, caption=caption, parse_mode=ParseMode.HTML))
                 else:
                     media_group.append(InputMediaPhoto(media=file_id))
-            elif media_type == 'audio':
+            elif media_type == 'video':
                 if i == 0:
-                    media_group.append(InputMediaAudio(media=file_id, caption=caption, parse_mode=ParseMode.HTML))
+                    media_group.append(InputMediaVideo(media=file_id, caption=caption, parse_mode=ParseMode.HTML))
                 else:
-                    media_group.append(InputMediaAudio(media=file_id))
+                    media_group.append(InputMediaVideo(media=file_id))
 
         if media_group:
             if len(media_group) == 1:
                 media = media_group[0]
                 if isinstance(media, InputMediaPhoto):
                     await message.answer_photo(media.media, caption=media.caption, parse_mode=media.parse_mode)
-                else:
-                    await message.answer_audio(media.media, caption=media.caption, parse_mode=media.parse_mode)
+                else isinstance(media, InputMediaVideo):
+                    await message.answer_video(media.media, caption=media.caption, parse_mode=media.parse_mode)
             else:
                 await message.answer_media_group(media_group)
         else:
@@ -140,9 +140,9 @@ async def choose_industry(callback: CallbackQuery, state: FSMContext):
         await state.update_data(industry=industry)
         
         industry_info = {
-            'artist': "Хорошо! Пришли ровно 8 фото своих работ(не в формате файла)",
-            'writer': "Отлично! Пришли ровно 2 фото (обложки книг или примеры текстов,не в формате файла)", 
-            'musician': "Отправь ровно 4 аудиофайлов в MP3"
+            'artist': "Хорошо! Пришли 8 фото/видео примеров работ",
+            'writer': "Отлично! Пришли 8 фото/видео примеров работ", 
+            'musician': "Супер! пришли 8 клипов с твоей музыкой в видео формате"
         }
         
         await callback.message.edit_text(text=industry_info[industry])
@@ -159,60 +159,65 @@ async def choose_industry(callback: CallbackQuery, state: FSMContext):
         await callback.message.answer(f"❌ Ошибка выбора отрасли: {str(e)}")
         await state.clear()
 
-@profile_router.message(F.photo, ProfileCreation.get_photos)
-async def handle_photos(message: Message, state: FSMContext):
+@profile_router.message(F.photo | F.video, ProfileCreation.get_photos)
+async def handle_photo(message: Message, state: FSMContext):
     try:
         data = await state.get_data()
         media = data.get('media', [])
         
         industry = data.get('industry')
-        max_photos = INDUSTRIES[industry]['max_files']
+        max_files = INDUSTRIES[industry]['max_files']
         
-        media.append(('photo', message.photo[-1].file_id))
-        await state.update_data(media=media)
-        
-        if len(media) >= max_photos:
-            # Если больше 8 — обрезаем
-            if len(media) > max_photos:
-                media = media[:max_photos]
-                await state.update_data(media=media)
-                await message.answer("⚠️ Одно фото было удалено (максимум 8)")
-            # Переходим к следующему шагу
-            await ask_name(message, state)
-
-    except Exception as e:
-        logger.error(f"Ошибка обработки фото: {e}")
-        await message.answer("⚠️ Ошибка. Отправьте фото снова.")
-
-@profile_router.message(F.audio, ProfileCreation.get_audio)
-async def handle_audio(message: Message, state: FSMContext):
-    try:
-        if message.audio.mime_type != 'audio/mpeg':
-            await message.answer("Только MP3 файлы!")
+        # Определяем тип медиа
+        if message.photo:
+            file_id = message.photo[-1].file_id
+            media_type = 'photo'
+        elif message.video:
+            file_id = message.video.file_id
+            media_type = 'video'
+        else:
             return
         
+        media.append((media_type, file_id))
+        await state.update_data(media=media)
+        
+        if len(media) >= max_files:
+            if len(media) > max_files:
+                media = media[:max_files]
+                await state.update_data(media=media)
+                await message.answer(f"⚠️ Удалено лишнее (максимум {max_files})")
+            await ask_name(message, state)
+            
+    except Exception as e:
+        logger.error(f"Ошибка обработки медиа: {e}")
+        await message.answer("⚠️ Ошибка. Отправьте фото или видео снова.")
+
+@profile_router.message(F.video_note, ProfileCreation.get_audio)
+async def handle_audio(message: Message, state: FSMContext):
+    try:
         data = await state.get_data()
         media = data.get('media', [])
         
         industry = data.get('industry')
-        max_audio = INDUSTRIES[industry]['max_files']
-        media.append(('audio', message.audio.file_id))
+        max_files = INDUSTRIES[industry]['max_files']
+        
+        file_id = message.video_note.file_id
+        media.append(('video_note', file_id))
         await state.update_data(media=media)
-                
-        if len(media) >= max_audio:
-            if len(media) == max_audio:
-                await ask_name(message, state)
-            else:
-                media = media[:max_audio]
+        
+        if len(media) >= max_files:
+            if len(media) > max_files:
+                media = media[:max_files]
                 await state.update_data(media=media)
-                await message.answer("⚠️ Одно аудио было удалено (максимум 4)")
-                await ask_name(message, state)
+                await message.answer(f"⚠️ Удалено лишнее (максимум {max_files})")
+            await ask_name(message, state)
         else:
-            await message.answer("Пришли еще аудио (нужно 4 файла MP3)")
-                
+            remaining = max_files - len(media)
+            await message.answer(f"🎬 Пришли еще клип (нужно {max_files}, осталось {remaining})")
+            
     except Exception as e:
-            logger.error(f"Ошибка обработки аудио: {e}")
-            await message.answer("⚠️ Ошибка. Отправьте аудио снова.")
+        logger.error(f"Ошибка обработки клипа: {e}")
+        await message.answer("⚠️ Ошибка. Отправьте клип снова.")
 
 async def ask_name(message: Message, state: FSMContext):
     try:
