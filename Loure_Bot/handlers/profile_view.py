@@ -8,7 +8,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.enums import ParseMode
 
 from config import INDUSTRIES, TARGETS
-from database.crud import get_profile_by_user_id, get_recommended_profiles, get_visit_count, increment_daily_visit
+from database.crud import get_profile_by_user_id, get_recommended_profiles, get_visit_count, increment_daily_visit, increment_visit_count
 from utils.filters import apply_filters
 
 logger = logging.getLogger(__name__)
