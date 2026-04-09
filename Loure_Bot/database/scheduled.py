@@ -95,10 +95,10 @@ async def scheduler():
                 await asyncio.sleep(60)
 
         if now.hour == 20 and now.minute == 0:
-            if last_daily_sent != now.date()
-            await send_daily_stats()
-            last_daily_sent = now.date()
-            await asyncio.sleep(3600)
+            if last_daily_sent != now.date():
+                await send_daily_stats()
+                last_daily_sent = now.date()
+                await asyncio.sleep(3600)
             
         await asyncio.sleep(60)
 
