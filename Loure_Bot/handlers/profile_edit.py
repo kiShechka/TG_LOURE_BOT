@@ -80,55 +80,67 @@ async def skip_photos(callback: CallbackQuery, state: FSMContext):
 
 
 @edit_router.message(F.photo | F.video, ProfileEditing.edit_photos)
-async def edit_photos(message: Message, state: FSMContext):
+async def edit_photo(message: Message, state: FSMContext):
     try:
         data = await state.get_data()
         current = data.get('current', {})
         industry = current.get('industry')
-        max_photos = INDUSTRIES[industry]['max_files']
+        max_files = INDUSTRIES[industry]['max_files']
+        
         new_media = data.get('new_media', [])
-        new_media.append(('photo', message.photo[-1].file_id))
+        
+        if message.photo:
+            file_id = message.photo[-1].file_id
+            media_type = 'photo'
+        elif message.video:
+            file_id = message.video.file_id
+            media_type = 'video'
+        else:
+            return
+        
+        new_media.append((media_type, file_id))
         await state.update_data(new_media=new_media)
         
-        if len(new_media) >= max_photos:
-            if len(new_media) > max_photos:
-                new_media = new_media[:max_photos]
+        if len(new_media) >= max_files:
+            if len(new_media) > max_files:
+                new_media = new_media[:max_files]
                 await state.update_data(new_media=new_media)
-                await message.answer(f"⚠️ Удалено лишнее фото (максимум {max_photos})")
+                await message.answer(f"⚠️ Удалено лишнее (максимум {max_files})")
             
             await state.update_data(edited_media=new_media)
             await ask_edit_name(message, state, current.get('name', ''))
+        else:
+            remaining = max_files - len(new_media)
             
     except Exception as e:
-        logger.error(f"Ошибка редактирования фото: {e}")
-        await message.answer("⚠️ Ошибка. Отправьте фото снова.")
+        logger.error(f"Ошибка редактирования медиа: {e}")
+        await message.answer("⚠️ Ошибка. Отправьте фото или видео снова.")
 
 
 @edit_router.message(F.video, ProfileEditing.edit_photos)
 async def edit_audio(message: Message, state: FSMContext):
     try:
-        if message.audio.mime_type != 'audio/mpeg':
-            await message.answer("Только MP3 файлы!")
+        if message.audio.mime_type != 'video':
+            await message.answer("видео")
             return
         
         data = await state.get_data()
         current = data.get('current', {})
         max_audio = INDUSTRIES[current['industry']]['max_files']
         new_media = data.get('new_media', [])
-        new_media.append(('audio', message.audio.file_id))
+        new_media.append(('video', message.video.file_id))
         await state.update_data(new_media=new_media)
         
         if len(new_media) >= max_audio:
             if len(new_media) > max_audio:
                 new_media = new_media[:max_audio]
                 await state.update_data(new_media=new_media)
-                await message.answer(f"⚠️ Удалено лишнее аудио (максимум {max_audio})")
+                await message.answer(f"⚠️ Удалено лишнее видио")
             
             await state.update_data(edited_media=new_media)
             await ask_edit_name(message, state, current.get('name', ''))
         else:
             remaining = max_audio - len(new_media)
-            await message.answer(f"Пришли еще аудио (нужно {max_audio} файлов, осталось {remaining})")
             
     except Exception as e:
         logger.error(f"Ошибка редактирования аудио: {e}")
