@@ -72,6 +72,11 @@ async def send_simple_profile(message: Message, profile: dict) -> bool:
                         await message.answer_audio(media.media, caption=media.caption, parse_mode=media.parse_mode)
                 else:
                     await message.answer_media_group(media_group)
+                media_sent = True
+
+        if media_sent:
+            return True
+            
     except Exception as e:
         logger.error(f"Ошибка отправки медиа: {e}")
     
