@@ -2,7 +2,7 @@
 import json
 import logging
 from typing import List, Dict, Optional, Tuple
-from datetime import datetime,timedelta
+from datetime import datetime,timedelta,date
 
 import aiosqlite
 from config import DB_PATH, DB_TIMEOUT, TARGET_MATCHING, INDUSTRIES, TARGETS
@@ -373,3 +373,51 @@ async def get_users_with_profiles() -> list:
     except Exception as e:
         logger.error(f"Ошибка получения пользователей: {e}")
         return []
+
+
+async def get_today_visits(code: str) -> int:
+    today = date.today().isoformat()
+    try:
+        async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
+            async with db.execute(
+                "SELECT visits FROM daily_stats WHERE code = ? AND date = ?",
+                (code, today)
+            ) as cursor:
+                row = await cursor.fetchone()
+                return row[0] if row else 0
+    except Exception as e:
+        logger.error(f"Ошибка получения дневной статистики: {e}")
+        return 0
+
+async def increment_daily_visit(code: str, user_id: int) -> bool:
+    today = date.today().isoformat()
+    try:
+        async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
+            await db.execute('''
+                INSERT INTO daily_stats (code, user_id, date, visits)
+                VALUES (?, ?, ?, 1)
+                ON CONFLICT(code, date) DO UPDATE SET
+                    visits = visits + 1
+            ''', (code, user_id, today))
+            await db.commit()
+            return True
+    except Exception as e:
+        logger.error(f"Ошибка обновления дневной статистики: {e}")
+        return False
+
+async def get_all_profile_codes() -> list:
+    try:
+        async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
+            async with db.execute("SELECT code, user_id FROM profiles") as cursor:
+                return await cursor.fetchall()
+    except Exception as e:
+        logger.error(f"Ошибка получения списка анкет: {e}")
+        return []
+
+async def reset_daily_stats():
+    today = date.today().isoformat()
+    try:
+        async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
+            pass
+    except Exception as e:
+        logger.error(f"Ошибка сброса статистики: {e}")
