@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Optional
 
 from aiogram import F, Router
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto, InputMediaAudio
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto, InputMediaVideo
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -79,7 +79,7 @@ async def skip_photos(callback: CallbackQuery, state: FSMContext):
     await ask_edit_name(callback.message, state, current.get('name', ''))
 
 
-@edit_router.message(F.photo, ProfileEditing.edit_photos)
+@edit_router.message(F.photo | F.video, ProfileEditing.edit_photos)
 async def edit_photos(message: Message, state: FSMContext):
     try:
         data = await state.get_data()
@@ -104,7 +104,7 @@ async def edit_photos(message: Message, state: FSMContext):
         await message.answer("⚠️ Ошибка. Отправьте фото снова.")
 
 
-@edit_router.message(F.audio, ProfileEditing.edit_photos)
+@edit_router.message(F.video, ProfileEditing.edit_photos)
 async def edit_audio(message: Message, state: FSMContext):
     try:
         if message.audio.mime_type != 'audio/mpeg':
