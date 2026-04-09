@@ -5,7 +5,10 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from database.crud import (
     get_weekly_stats, 
     get_filtered_profiles, 
-    get_users_with_profiles
+    get_users_with_profiles,
+    get_all_profile_codes,
+    get_today_visits,
+    get_profile_by_code
 )
 from config import TOKEN
 
@@ -53,11 +56,47 @@ async def send_weekly_notifications():
     await bot.session.close()
 
 async def scheduler():
+    last_weekly_sent = None
+    last_daily_sent = None
+    
     while True:
         now = datetime.now()
         if now.weekday() == 4 and now.hour == 20 and now.minute == 0:
-            print(f"🕐 Запуск рассылки: {now}")
-            await send_weekly_notifications()
-            await asyncio.sleep(60)
-        
-        await asyncio.sleep(60) 
+            if now.weekday() == 4 and now.hour == 20 and now.minute == 0:
+                print(f"🕐 Запуск рассылки: {now}")
+                await send_weekly_notifications()
+                await asyncio.sleep(60)
+
+        if now.hour == 20 and now.minute == 0:
+            if now.hour == 20 and now.minute == 0:
+            await send_daily_stats()
+            # Ждём час, чтобы не отправить несколько раз
+            await asyncio.sleep(3600)
+            
+        await asyncio.sleep(60)
+    
+async def send_daily_stats():
+    logger.info("Запуск отправки дневной статистики...")
+    
+    profiles = await get_all_profile_codes()
+    
+    for code, user_id in profiles:
+        today_visits = await get_today_visits(code)
+        if today_visits > 0:
+            profile = await get_profile_by_code(code)
+            if profile:
+                try:
+                    await bot.send_message(
+                        chat_id=user_id,
+                        text=f"📊 <b>Статистика вашей анкеты за сегодня</b>\n\n"
+                             f"👤 Анкета: {profile.get('name', 'Без имени')}\n"
+                             f"🔗 Переходов по ссылке на канал: <b>{today_visits}</b>\n\n"
+                             f"Продолжайте развивать своё творчество! 🎨",
+                        parse_mode="HTML"
+                    )
+                    logger.info(f"Отправлена статистика пользователю {user_id}: {today_visits} переходов")
+                except Exception as e:
+                    logger.error(f"Ошибка отправки статистики пользователю {user_id}: {e}")
+    
+    logger.info("Отправка дневной статистики завершена")
+
