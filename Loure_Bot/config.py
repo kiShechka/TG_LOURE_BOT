@@ -39,23 +39,23 @@ INDUSTRIES: Dict[str, Dict[str, Any]] = {
     'artist': {
         'name': 'Художник',
         'max_files': 8,
-        'file_type': 'photo',
+        'file_type': ['photo' 'video'],
         'examples': 'Иллюстрации, Анимация, Дизайн',
-        'instruction': 'Пришли ровно 8 фото своих работ'
+        'instruction': 'Пришли 8 фото/видео примеров работ'
     },
     'writer': {
         'name': 'Писатель',
-        'max_files': 2,
-        'file_type': 'photo',
+        'max_files': 8,
+        'file_type': ['photo' 'video'],
         'examples': 'Стихи, Рассказы, Биографии',
-        'instruction': 'Пришли ровно 2 фото (обложки книг или примеры текстов)'
+        'instruction': 'Пришли 8 фото/видео примеров работ'
     },
     'musician': {
         'name': 'Музыкант',
-        'max_files': 4,
-        'file_type': 'audio',
+        'max_files': 8,
+        'file_type': 'video',
         'examples': 'Песни, Озвучка, Саунд-дизайн',
-        'instruction': 'Отправь ровно 4 аудиофайла в MP3'
+        'instruction': 'Отправь 8 клипов с твоей музыкой'
     }
 }
 
