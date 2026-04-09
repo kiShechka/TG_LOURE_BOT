@@ -3,7 +3,7 @@ import logging
 import re
 from typing import List, Dict, Optional
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InputMediaAudio, InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InputMediaVideo, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.fsm.context import FSMContext
 from aiogram.enums import ParseMode
 
@@ -54,14 +54,24 @@ async def send_simple_profile(message: Message, profile: dict) -> bool:
                         media_group.append(InputMediaPhoto(media=file_id, caption=caption, parse_mode=ParseMode.HTML))
                     else:
                         media_group.append(InputMediaPhoto(media=file_id))
-                elif media_type == 'audio':
+                elif media_type == 'video':
                     if i == 0:
-                        media_group.append(InputMediaAudio(media=file_id, caption=caption, parse_mode=ParseMode.HTML))
+                        media_group.append(InputMediaVideo(media=file_id, caption=caption, parse_mode=ParseMode.HTML))
                     else:
-                        media_group.append(InputMediaAudio(media=file_id))
-            await message.answer_media_group(media_group)
-            return True
+                        media_group.append(InputMediaVideo(media=file_id))
 
+            
+            if media_group:
+                if len(media_group) == 1:
+                    media = media_group[0]
+                    if isinstance(media, InputMediaPhoto):
+                        await message.answer_photo(media.media, caption=media.caption, parse_mode=media.parse_mode)
+                    elif isinstance(media, InputMediaVideo):
+                        await message.answer_video(media.media, caption=media.caption, parse_mode=media.parse_mode)
+                    else:
+                        await message.answer_audio(media.media, caption=media.caption, parse_mode=media.parse_mode)
+                else:
+                    await message.answer_media_group(media_group)
     except Exception as e:
         logger.error(f"Ошибка отправки медиа: {e}")
     
@@ -291,7 +301,7 @@ async def cmd_my_ancet(message: Message):
 async def handle_visit_channel(callback: CallbackQuery):
     try:
         code = callback.data.split("_")[-1]
-        profile = await get_profile_by_user_id(callback.from_user.id)  # Это профиль текущего пользователя, а не владельца канала
+        profile = await get_profile_by_user_id(callback.from_user.id)
         from database.crud import get_profile_by_code
         target_profile = await get_profile_by_code(code)
 
