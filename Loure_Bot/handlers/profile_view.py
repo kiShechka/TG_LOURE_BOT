@@ -1,18 +1,42 @@
 
 import logging
-from typing import List, Dict
+import re
+from typing import List, Dict, Optional
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InputMediaAudio, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.fsm.context import FSMContext
 from aiogram.enums import ParseMode
 
 from config import INDUSTRIES, TARGETS
-from database.crud import get_profile_by_user_id, get_recommended_profiles
+from database.crud import get_profile_by_user_id, get_recommended_profiles, get_visit_count, increment_daily_visit
 from utils.filters import apply_filters
 
 logger = logging.getLogger(__name__)
 view_router = Router()
 
+def extract_channel_link(text: str) -> str | None:
+    if not text:
+        return None
+    text_lower = text.lower()
+    
+    url_match = re.search(r'https?://t\.me/([a-zA-Z0-9_]+)', text_lower)
+    if url_match:
+        return f"https://t.me/{url_match.group(1)}"
+    social_patterns = [
+        r'тт\s*:\s*@',      # тт: @username
+        r'твитер\s*:\s*@',  # твитер: @username
+        r'twitter\s*:\s*@', # twitter: @username
+        r'instagram\s*:\s*@', # instagram: @username
+        r'инстаграм\s*:\s*@', # инстаграм: @username
+    ]
+    for pattern in social_patterns:
+        if re.search(pattern, text_lower):
+            continue
+    at_match = re.search(r'(?<![a-zA-Z0-9/])@([a-zA-Z0-9_]{5,32})\b', text)
+    if at_match:
+        return f"https://t.me/{at_match.group(1)}"
+    return None
+    
 async def send_simple_profile(message: Message, profile: dict) -> bool:
     try:
         media = profile.get('media', [])
@@ -138,8 +162,16 @@ async def show_current_profile(callback: CallbackQuery, state: FSMContext):
         
         current_profile = profiles[current_index]
         await send_simple_profile(callback.message, current_profile)
-        keyboard_buttons = []
+
+        channel_link = extract_channel_link(current_profile.get('description', ''))
+        visit_count = await get_visit_count(current_profile['code']) if channel_link else 0
         
+        keyboard_buttons = []
+        if channel_link:
+            keyboard_buttons.appened([InlineKeyboardButton(
+                test=f"На канал({visit_count})",
+                callback_data=F"visit_channel_{current_profile['code']}"
+            )])
         if current_index + 1 < len(profiles):
             keyboard_buttons.append([InlineKeyboardButton(
                 text=f"Дальше → ({current_index + 1}/{total})", 
@@ -255,3 +287,46 @@ async def return_to_main_menu(callback: CallbackQuery, state: FSMContext):
 @view_router.message(F.text == "/my_ancet")
 async def cmd_my_ancet(message: Message):
     await view_my_profile(message)
+
+
+@view_router.callback_query(F.data.startswith("visit_channel_"))
+async def handle_visit_channel(callback: CallbackQuery):
+    try:
+        code = callback.data.split("_")[-1]
+        profile = await get_profile_by_user_id(callback.from_user.id)  # Это профиль текущего пользователя, а не владельца канала
+        from database.crud import get_profile_by_code
+        target_profile = await get_profile_by_code(code)
+
+        if not target_profile:
+            await callback.answer("❌ Анкета не найдена", show_alert=True)
+            return
+
+        channel_link = extract_channel_link(target_profile.get('description', ''))
+
+        if not channel_link:
+            await callback.answer("❌ Ссылка на канал не найдена в этой анкете", show_alert=True)
+            return
+        await increment_visit_count(code)  
+        await increment_daily_visit(code, target_profile['user_id']) 
+
+        new_count = await get_visit_count(code)
+
+        await callback.answer("🔓 Открываю канал...")
+        try:
+            pass
+        except Exception:
+            pass 
+
+        await callback.message.answer(
+            f"🔗 <b>Ссылка на канал пользователя {target_profile['name']}:</b>\n{channel_link}",
+            parse_mode=ParseMode.HTML,
+            disable_web_page_preview=False  # Telegram покажет превью ссылки
+        )
+
+        await callback.message.answer(
+            f"✅ Спасибо за интерес! У канала теперь {new_count} переходов."
+        )
+
+    except Exception as e:
+        logger.error(f"Ошибка в handle_visit_channel: {e}", exc_info=True)
+        await callback.answer("❌ Произошла ошибка", show_alert=True)
