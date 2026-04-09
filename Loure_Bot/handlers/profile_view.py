@@ -45,9 +45,7 @@ async def send_simple_profile(message: Message, profile: dict) -> bool:
             media_group = []
             caption = (
                 f"👤 <b>{profile['name']}</b>\n"
-                f"Отрасль: {INDUSTRIES.get(profile['industry'], {}).get('name', profile['industry'])}\n\n"
                 f"📝 <b>Описание:</b>\n{profile['description']}\n\n"
-                f"<b>Ищет:</b> {TARGETS.get(profile['target'], profile['target'])}\n"
                 f"<b>Код:</b> <code>{profile['code']}</code>"
             )
             for i, (media_type, file_id) in enumerate(media):
