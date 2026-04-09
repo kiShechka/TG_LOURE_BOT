@@ -54,26 +54,6 @@ async def send_weekly_notifications():
             print(f"Ошибка отправки пользователю {user_id}: {e}")
     
     await bot.session.close()
-
-async def scheduler():
-    last_weekly_sent = None
-    last_daily_sent = None
-    
-    while True:
-        now = datetime.now()
-        if now.weekday() == 4 and now.hour == 20 and now.minute == 0:
-            if now.weekday() == 4 and now.hour == 20 and now.minute == 0:
-                print(f"🕐 Запуск рассылки: {now}")
-                await send_weekly_notifications()
-                await asyncio.sleep(60)
-
-        if now.hour == 20 and now.minute == 0:
-            if now.hour == 20 and now.minute == 0:
-            await send_daily_stats()
-            # Ждём час, чтобы не отправить несколько раз
-            await asyncio.sleep(3600)
-            
-        await asyncio.sleep(60)
     
 async def send_daily_stats():
     logger.info("Запуск отправки дневной статистики...")
@@ -99,4 +79,26 @@ async def send_daily_stats():
                     logger.error(f"Ошибка отправки статистики пользователю {user_id}: {e}")
     
     logger.info("Отправка дневной статистики завершена")
+
+
+async def scheduler():
+    last_weekly_sent = None
+    last_daily_sent = None
+    
+    while True:
+        now = datetime.now()
+        if now.weekday() == 4 and now.hour == 20 and now.minute == 0:
+            if last_weekly_sent != now.date():
+                print(f"🕐 Запуск рассылки: {now}")
+                await send_weekly_notifications()
+                last_weekly_sent = now.date()
+                await asyncio.sleep(60)
+
+        if now.hour == 20 and now.minute == 0:
+            if last_daily_sent != now.date()
+            await send_daily_stats()
+            last_daily_sent = now.date()
+            await asyncio.sleep(3600)
+            
+        await asyncio.sleep(60)
 
