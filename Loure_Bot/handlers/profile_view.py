@@ -168,7 +168,7 @@ async def show_current_profile(callback: CallbackQuery, state: FSMContext):
         
         keyboard_buttons = []
         if channel_link:
-            keyboard_buttons.appened([InlineKeyboardButton(
+            keyboard_buttons.appned([InlineKeyboardButton(
                 test=f"На канал({visit_count})",
                 callback_data=F"visit_channel_{current_profile['code']}"
             )])
