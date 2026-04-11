@@ -19,7 +19,56 @@ from .profile_creanion import send_full_profile
 logger = logging.getLogger(__name__)
 edit_router = Router()
 
+class ProfileEditing(StatesGroup):
+    edit_photos = State()      
+    edit_name = State()        
+    edit_description = State()
+    edit_target = State()      
+    finish = State()
+
+def get_skip_keyboard():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Оставить как было", callback_data="skip_step")]
+    ])
+
+def get_target_keyboard_with_skip():
+    buttons = []
+    for key, value in TARGETS.items():
+        buttons.append([InlineKeyboardButton(text=value, callback_data=f"target_{key}")])
+    buttons.append([InlineKeyboardButton(text="Оставить как было", callback_data="skip_step")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
 @edit_router.message(Command("edit"))
+async def cmd_edit_profile(message: Message, state: FSMContext):
+    current_profile = await get_profile_by_user_id(message.from_user.id)
+    
+    if not current_profile:
+        await message.answer("У вас нет анкеты для редактирования. Создайте новую командой /start")
+        return
+    
+    await state.update_data(
+        current=current_profile,
+        original_code=current_profile['code']
+    )
+    
+    industry = current_profile['industry']
+    
+    if industry in ['artist', 'writer']:
+        media_count = len(current_profile.get('media', []))
+        await message.answer(
+            f"Отправьте новые файлы (до {INDUSTRIES[industry]['max_files']} шт, можно фото и видео) или нажмите 'Оставить'",
+            reply_markup=get_skip_keyboard()
+        )
+    elif industry == 'musician':
+        media_count = len(current_profile.get('media', []))
+        await message.answer(
+            f"Отправьте новые клипы (видео-сообщения, до {INDUSTRIES[industry]['max_files']} шт) или нажмите 'Оставить'",
+            reply_markup=get_skip_keyboard()
+        )
+    
+    await state.set_state(ProfileEditing.edit_photos)
+
+
 @edit_router.callback_query(F.data == "edit_profile")
 async def start_edit_profile(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
@@ -49,26 +98,8 @@ async def start_edit_profile(callback: CallbackQuery, state: FSMContext):
             reply_markup=get_skip_keyboard()
         )
     
-    await state.set_state(ProfileEditing.edit_photos)
-    
-class ProfileEditing(StatesGroup):
-    edit_photos = State()      
-    edit_name = State()        
-    edit_description = State()
-    edit_target = State()      
-    finish = State()     
+    await state.set_state(ProfileEditing.edit_photos)     
 
-def get_skip_keyboard():
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="Оставить как было", callback_data="skip_step")]
-    ])
-
-def get_target_keyboard_with_skip():
-    buttons = []
-    for key, value in TARGETS.items():
-        buttons.append([InlineKeyboardButton(text=value, callback_data=f"target_{key}")])
-    buttons.append([InlineKeyboardButton(text="Оставить как было", callback_data="skip_step")])
-    return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 @edit_router.callback_query(F.data == "skip_step", ProfileEditing.edit_photos)
 async def skip_photos(callback: CallbackQuery, state: FSMContext):
