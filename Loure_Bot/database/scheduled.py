@@ -44,10 +44,10 @@ async def send_weekly_notifications():
                 
                 if matching_profiles:
                     message = (
-                        f"👋 Привет! Появились новые анкеты!\n\n"
-                        f"📊 За неделю создано: {total_new} анкет\n"
-                        f"🎯 Для вас подходит: {len(matching_profiles)} анкет\n\n"
-                        f"Нажми на кнопку ниже, чтобы посмотреть! 👇"
+                        f"Привет! Появились новые анкеты!\n\n"
+                        f"За неделю создано: {total_new} анкет\n"
+                        f"Для вас подходит: {len(matching_profiles)} анкет\n\n"
+                        f"Нажми на кнопку ниже, чтобы посмотреть!"
                     )
                     
                     await bot.send_message(
@@ -114,14 +114,14 @@ async def scheduler():
         
         if now.weekday() == 3 and now.hour == 20 and now.minute == 0:
             if last_weekly_sent != now.date():
-                logger.info(f"🕐 Запуск еженедельной рассылки: {now}")
+                logger.info(f"Запуск еженедельной рассылки: {now}")
                 await send_weekly_notifications()
                 last_weekly_sent = now.date()
                 await asyncio.sleep(60)
         
         if now.hour == 20 and now.minute == 0:
             if last_daily_sent != now.date():
-                logger.info(f"🕐 Запуск дневной статистики: {now}")
+                logger.info(f"Запуск дневной статистики: {now}")
                 await send_daily_stats()
                 last_daily_sent = now.date()
                 await asyncio.sleep(60)
