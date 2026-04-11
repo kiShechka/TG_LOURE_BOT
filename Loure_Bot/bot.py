@@ -40,11 +40,6 @@ async def cmd_my_ancet(message: Message):
     from handlers.profile_view import view_my_profile
     await view_my_profile(message)
 
-@router.message(Command("edit"))
-async def cmd_edit(message: Message, state: FSMContext):
-    from handlers.profile_edit import edit_router
-    await edit(message, state)
-
 if ADMIN_CHAT_ID:
     @router.message(Command("delete_admin"), F.chat.id == ADMIN_CHAT_ID)
     async def cmd_delete_admin(message: Message):
