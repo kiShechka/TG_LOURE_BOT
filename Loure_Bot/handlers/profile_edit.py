@@ -40,6 +40,7 @@ def get_target_keyboard_with_skip():
 
 @edit_router.message(Command("edit"))
 async def cmd_edit_profile(message: Message, state: FSMContext):
+    await mrssage.answer("команда эдит получини")
     current_profile = await get_profile_by_user_id(message.from_user.id)
     
     if not current_profile:
@@ -259,7 +260,6 @@ async def finish_edit_profile(message: Message, state: FSMContext):
         data = await state.get_data()
         current = data.get('current', {})
         
-        # Собираем финальную анкету
         edited_profile = {
             'user_id': current['user_id'],
             'username': current.get('username'),
