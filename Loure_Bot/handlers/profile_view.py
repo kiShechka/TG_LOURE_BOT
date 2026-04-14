@@ -8,7 +8,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.enums import ParseMode
 
 from config import INDUSTRIES, TARGETS, ADMIN_CHAT_ID
-from database.crud import get_profile_by_user_id, get_recommended_profiles, get_visit_count,increment_daily_visit, increment_visit_count,save_response, check_response, get_responses_count,create_anonymous_chat, get_active_chat_by_users, get_user_active_chat,save_message, close_chat, is_user_banned,get_profile_by_code
+from database.crud import get_profile_by_user_id, get_recommended_profiles, get_visit_count,increment_daily_visit, increment_visit_count,save_response, check_response, get_responses_count, get_active_chat_by_users, get_user_active_chat,save_message, close_chat, is_user_banned,get_profile_by_code
 from utils.filters import apply_filters
 
 logger = logging.getLogger(__name__)
@@ -445,12 +445,8 @@ async def accept_response(callback: CallbackQuery, bot: Bot, state: FSMContext):
                 parse_mode=ParseMode.HTML
             )
         else:
-            chat_code = await create_anonymous_chat(
-                customer_id=customer_profile['user_id'],
-                executor_id=executor_profile['user_id'],
-                customer_profile_code=customer_code,
-                executor_profile_code=executor_code
-            )
+            chat_code = f"{customer_code}_{executor_code}"
+            
             for user_id, role in [(customer_profile['user_id'], 'Заказчик'), (executor_profile['user_id'], 'Исполнитель')]:
                 await bot.send_message(
                     chat_id=user_id,
