@@ -394,7 +394,3 @@ async def admin_ban_user(message: Message):
     
     await ban_user(user_id, reason)
     await message.answer(f"✅ Пользователь {user_id} заблокирован\nПричина: {reason}")
-        
-    except Exception as e:
-        logger.error(f"Ошибка в delete_profile_callback: {e}", exc_info=True)
-        await callback.answer("❌ Ошибка удаления", show_alert=True)
