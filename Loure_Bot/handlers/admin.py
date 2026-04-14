@@ -13,9 +13,12 @@ from database.crud import (
     get_profile_by_code,
     get_all_profiles,
     get_profile_stats,
-    delete_profile_by_user_id
+    delete_profile_by_user_id,
+    get_chat_messages,
+    get_chat_by_code,
+    ban_user, 
+    get_user_active_chat
 )
-
 logger = logging.getLogger(__name__)
 admin_router = Router()
 
@@ -326,6 +329,68 @@ async def delete_profile_callback(callback: CallbackQuery):
             )
         
         await callback.answer()
+
+
+@admin_router.message(Command("get_chat"))
+async def admin_get_chat(message: Message):
+    if message.from_user.id != ADMIN_CHAT_ID:
+        return
+    
+    args = message.text.split()
+    if len(args) < 2:
+        await message.answer("❌ Укажите код чата: /get_chat [код]")
+        return
+    
+    chat_code = args[1]
+    messages = await get_chat_messages(chat_code, limit=200)
+    chat = await get_chat_by_code(chat_code)
+    
+    if not chat:
+        await message.answer(f"❌ Чат {chat_code} не найден")
+        return
+    
+    if not messages:
+        await message.answer(f"📭 Чат {chat_code} пуст")
+        return
+    
+    text = f"<b>Переписка чата {chat_code}</b>\n"
+    text += f"Заказчик: {chat['customer_id']}\n"
+    text += f"Исполнитель: {chat['executor_id']}\n"
+    text += f"Статус: {chat['status']}\n"
+    text += f"{'='*30}\n\n"
+    
+    for msg in messages:
+        sender = "👤 Заказчик" if msg['sender_id'] == chat['customer_id'] else "🎤 Исполнитель"
+        text += f"[{msg['created_at'][:16]}] {sender}:\n{msg['message_text']}\n\n"
+        
+        if len(text) > 3800:
+            await message.answer(text, parse_mode=ParseMode.HTML)
+            text = ""
+    
+    if text:
+        await message.answer(text, parse_mode=ParseMode.HTML)
+
+
+@admin_router.message(Command("ban_user"))
+async def admin_ban_user(message: Message):
+    if message.from_user.id != ADMIN_CHAT_ID:
+        return
+    
+    args = message.text.split(maxsplit=1)
+    if len(args) < 2:
+        await message.answer("❌ Укажите user_id: /ban_user [user_id] [причина]")
+        return
+    
+    try:
+        user_id = int(args[0].split()[1] if len(args[0].split()) > 1 else args[0])
+    except:
+        await message.answer("❌ Неверный формат user_id")
+        return
+    
+    reason = args[1] if len(args) > 1 else "Не указана"
+    
+    await ban_user(user_id, reason)
+    await message.answer(f"✅ Пользователь {user_id} заблокирован\nПричина: {reason}")
         
     except Exception as e:
         logger.error(f"Ошибка в delete_profile_callback: {e}", exc_info=True)
