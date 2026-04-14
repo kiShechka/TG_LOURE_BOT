@@ -7,7 +7,7 @@ from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.enums import ParseMode
 
-from database.crud import delete_profile_by_user_id, get_profile_by_user_id
+from database.crud import delete_profile_by_user_id, get_profile_by_user_id,get_user_active_chat, save_message, close_chat, is_user_banned, get_chat_by_code, get_chat_messages 
 from utils.keyboard import get_main_menu_keyboard
 
 logger = logging.getLogger(__name__)
@@ -204,3 +204,81 @@ async def error_handler(event: Any, exception: Exception):
             )
     except Exception as e:
         logger.error(f"Ошибка в обработчике ошибок: {e}", exc_info=True)
+
+
+@common_router.message(F.text & ~F.command)
+async def handle_chat_message(message: Message, state: FSMContext):
+    user_id = message.from_user.id
+
+    if await is_user_banned(user_id):
+        await message.answer("❌ Вы забанены и не можете отправлять сообщения.")
+        return
+    chat = await get_user_active_chat(user_id)
+    
+    if not chat:
+        return
+    
+    if user_id == chat['customer_id']:
+        receiver_id = chat['executor_id']
+        role = "Заказчик"
+    else:
+        receiver_id = chat['customer_id']
+        role = "Исполнитель"
+    
+    await save_message(
+        chat_code=chat['chat_code'],
+        sender_id=user_id,
+        receiver_id=receiver_id,
+        message_text=message.text,
+        message_type='text'
+    )
+    await message.bot.send_message(
+        chat_id=receiver_id,
+        text=f"<b>{role}:</b>\n{message.text}",
+        parse_mode=ParseMode.HTML
+    )
+    await message.answer("✅ Сообщение доставлено собеседнику анонимно.")
+
+
+@common_router.message(Command("close_chat"))
+async def close_chat_command(message: Message):
+    user_id = message.from_user.id
+    chat = await get_user_active_chat(user_id)
+    
+    if not chat:
+        await message.answer("❌ У вас нет активного чата.")
+        return
+    
+    await close_chat(chat['chat_code'])
+    await message.answer(f"✅ Чат закрыт. Сообщения больше не будут доставляться.")
+
+
+@common_router.message(Command("complaint"))
+async def complaint_command(message: Message):
+    user_id = message.from_user.id
+    chat = await get_user_active_chat(user_id)
+    
+    if not chat:
+        await message.answer("❌ У вас нет активного чата.")
+        return
+    
+    args = message.text.split(maxsplit=1)
+    reason = args[1] if len(args) > 1 else "Не указана"
+    
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "INSERT INTO complaints (user_id, chat_code, reason) VALUES (?, ?, ?)",
+            (user_id, chat['chat_code'], reason)
+        )
+        await db.commit()
+    if ADMIN_CHAT_ID:
+        await message.bot.send_message(
+            chat_id=ADMIN_CHAT_ID,
+            text=f"⚠️ <b>НОВАЯ ЖАЛОБА!</b>\n\n"
+                 f"Чат: {chat['chat_code']}\n"
+                 f"Пользователь: {user_id}\n"
+                 f"Причина: {reason}",
+            parse_mode=ParseMode.HTML
+        )
+    
+    await message.answer("✅ Жалоба отправлена администратору.")
