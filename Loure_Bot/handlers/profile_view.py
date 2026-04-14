@@ -131,7 +131,7 @@ async def start_viewing(callback: CallbackQuery, state: FSMContext):
         
     except Exception as e:
         logger.error(f"Ошибка в start_viewing: {e}", exc_info=True)
-        await callback.answer("🚨 Произошла ошибка. Попробуйте позже.", show_alert=True)
+        await callback.answer("Произошла ошибка. Попробуйте позже.", show_alert=True)
 
 @view_router.callback_query(F.data == "next_profile")
 async def show_next_profile(callback: CallbackQuery, state: FSMContext):
@@ -147,11 +147,6 @@ async def show_next_profile(callback: CallbackQuery, state: FSMContext):
         if new_index >= len(profiles):
             await callback.message.edit_text(
                 "✅ Вы просмотрели все доступные анкеты!\n\n"
-                "Хотите создать свою анкету?",
-                reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                    [InlineKeyboardButton(text="📝 Создать анкету", callback_data='create_profile')],
-                    [InlineKeyboardButton(text="🔙 Главное меню", callback_data='main_menu')]
-                ])
             )
             await state.clear()
             return
@@ -176,15 +171,24 @@ async def show_current_profile(callback: CallbackQuery, state: FSMContext):
         current_profile = profiles[current_index]
         await send_simple_profile(callback.message, current_profile)
 
-        channel_link = extract_channel_link(current_profile.get('description', ''))
-        visit_count = await get_visit_count(current_profile['code']) if channel_link else 0
+        target = current_profile.get('target','')
         
         keyboard_buttons = []
-        if channel_link:
+        if target == 'executor':
+            responses_count = await get_responses_count(current_profile['code'])
             keyboard_buttons.append([InlineKeyboardButton(
-                text=f"На канал({visit_count})",
-                callback_data=f"visit_channel_{current_profile['code']}"
+                text=f"Откликнуться({responses_count})",
+                callback_data=f"respond_{current_profile['code']}"
             )])
+        else:
+            channel_link = extract_channel_link(current_profile.get('description', ''))
+            if channel_link:
+                visit_count = await get_visit_count(current_profile['code']) if channel_link else 0
+                keyboard_buttons.append([InlineKeyboardButton(
+                    text=f"На канал({visit_count})",
+                    callback_data=f"visit_channel_{current_profile['code']}"
+                )])
+                
         if current_index + 1 < len(profiles):
             keyboard_buttons.append([InlineKeyboardButton(
                 text=f"Дальше → ({current_index + 1}/{total})", 
@@ -195,10 +199,6 @@ async def show_current_profile(callback: CallbackQuery, state: FSMContext):
                 text=f"Последняя анкета ({current_index + 1}/{total})", 
                 callback_data='next_profile'
             )])
-        
-        keyboard_buttons.append([
-            InlineKeyboardButton(text="⏹️ Остановить", callback_data='stop_viewing'),
-            InlineKeyboardButton(text="🔙 Назад", callback_data='prev_profile')
         ])
         
         keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
@@ -343,3 +343,162 @@ async def handle_visit_channel(callback: CallbackQuery):
     except Exception as e:
         logger.error(f"Ошибка в handle_visit_channel: {e}", exc_info=True)
         await callback.answer("❌ Произошла ошибка", show_alert=True)
+
+
+@view_router.callback_query(F.data.startswith("respond_"))
+async def handle_response(callback: CallbackQuery, bot: Bot):
+    try:
+        code = callback.data.split("_")[-1]
+        customer_profile = await get_profile_by_code(code)
+        if not customer_profile:
+            await callback.answer("❌ Анкета не найдена", show_alert=True)
+            return
+        if await is_user_banned(callback.from_user.id):
+            await callback.answer("❌ Вы забанены и не можете использовать эту функцию", show_alert=True)
+            return
+        executor_profile = await get_profile_by_user_id(callback.from_user.id)
+        if not executor_profile:
+            await callback.answer("❌ У вас нет анкеты. Создайте её!", show_alert=True)
+            return
+        if await check_response(customer_profile['code'], callback.from_user.id):
+            await callback.answer("✅ Вы уже откликались на эту анкету", show_alert=True)
+            return
+        await save_response(customer_profile['code'], callback.from_user.id, executor_profile['name'])
+        await send_simple_profile_to_user(
+            bot=bot,
+            user_id=customer_profile['user_id'],
+            profile=executor_profile,
+            response_code=code
+        )
+        
+        await callback.answer("✅ Ваша анкета отправлена заказчику!")
+        
+        # Подтверждение исполнителю
+        await callback.message.answer(
+            "✅ Вы откликнулись на анкету!\n"
+            "Заказчик получил вашу анкету и свяжется с вами, если вы заинтересовали."
+        )
+        
+        logger.info(f"Отклик от {callback.from_user.id} на анкету {code}")
+        
+    except Exception as e:
+        logger.error(f"Ошибка отклика: {e}")
+        await callback.answer("❌ Ошибка при отправке отклика", show_alert=True)
+
+
+async def send_simple_profile_to_user(bot: Bot, user_id: int, profile: dict, response_code: str = None):
+    try:
+        caption = (
+            f"👤 <b>{profile['name']}</b>\n"
+            f"📝 <b>Описание:</b>\n{profile['description']}\n\n"
+            f"<b>Код:</b> <code>{profile['code']}</code>\n\n"
+            f"<i>Этот пользователь откликнулся на вашу анкету!</i>"
+        )
+        media = profile.get('media', [])
+        if media:
+            for media_type, file_id in media:
+                if media_type == 'photo':
+                    await bot.send_photo(chat_id=user_id, photo=file_id, caption=caption if media_type == media[0][0] else None, parse_mode=ParseMode.HTML)
+                elif media_type == 'video':
+                    await bot.send_video(chat_id=user_id, video=file_id, caption=caption if media_type == media[0][0] else None, parse_mode=ParseMode.HTML)
+        else:
+            await bot.send_message(chat_id=user_id, text=caption, parse_mode=ParseMode.HTML)
+        
+        # Кнопки действий для заказчика
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [
+                InlineKeyboardButton(text="✅ Принять", callback_data=f"accept_response_{response_code}_{profile['code']}"),
+                InlineKeyboardButton(text="❌ Отказать", callback_data=f"reject_response_{response_code}_{profile['code']}")
+            ]
+        ])
+        
+        await bot.send_message(
+            chat_id=user_id,
+            text="<b>Что делаем с этим откликом?</b>",
+            parse_mode=ParseMode.HTML,
+            reply_markup=keyboard
+        )
+        
+    except Exception as e:
+        logger.error(f"Ошибка отправки анкеты пользователю {user_id}: {e}")
+
+
+@view_router.callback_query(F.data.startswith("accept_response_"))
+async def accept_response(callback: CallbackQuery, bot: Bot, state: FSMContext):
+    try:
+        _, _, customer_code, executor_code = callback.data.split("_")
+        
+        customer_profile = await get_profile_by_code(customer_code)
+        executor_profile = await get_profile_by_code(executor_code)
+        
+        if not customer_profile or not executor_profile:
+            await callback.answer("❌ Ошибка: анкета не найдена", show_alert=True)
+            return
+        existing_chat = await get_active_chat_by_users(customer_profile['user_id'], executor_profile['user_id'])
+        
+        if existing_chat:
+            chat_code = existing_chat['chat_code']
+            await callback.message.edit_text(
+                f"✅ Чат уже существует!\n"
+                f"Код чата: <code>{chat_code}</code>\n\n"
+                f"Напишите боту любое сообщение, и оно будет доставлено собеседнику.\n"
+                f"Для завершения чата отправьте /close_chat",
+                parse_mode=ParseMode.HTML
+            )
+        else:
+            chat_code = await create_anonymous_chat(
+                customer_id=customer_profile['user_id'],
+                executor_id=executor_profile['user_id'],
+                customer_profile_code=customer_code,
+                executor_profile_code=executor_code
+            )
+            for user_id, role in [(customer_profile['user_id'], 'Заказчик'), (executor_profile['user_id'], 'Исполнитель')]:
+                await bot.send_message(
+                    chat_id=user_id,
+                    text=f"<b>Создан анонимный чат!</b>\n\n"
+                         f"Ваша роль: {role}\n"
+                         f"Код чата: <code>{chat_code}</code>\n\n"
+                         f"<b>Как это работает:</b>\n"
+                         f"• Отправляйте сообщения в этот диалог\n"
+                         f"• Бот будет пересылать их собеседнику анонимно\n"
+                         f"• Ваши данные (имя, username) НЕ раскрываются\n"
+                         f"• Все сообщения логируются для безопасности\n\n"
+                         f"Чтобы завершить чат: /close_chat\n"
+                         f"Чтобы пожаловаться: /complaint [причина]",
+                    parse_mode=ParseMode.HTML
+                )
+            
+            await callback.message.edit_text(
+                f"✅ Отклик принят! Анонимный чат создан.\n"
+                f"Код чата: <code>{chat_code}</code>\n\n"
+                f"Напишите боту любое сообщение, и оно будет доставлено собеседнику.\n"
+                f"Для завершения чата отправьте /close_chat",
+                parse_mode=ParseMode.HTML
+            )
+        
+        await callback.answer()
+        
+    except Exception as e:
+        logger.error(f"Ошибка принятия отклика: {e}")
+        await callback.answer("❌ Ошибка", show_alert=True)
+
+
+@view_router.callback_query(F.data.startswith("reject_response_"))
+async def reject_response(callback: CallbackQuery, bot: Bot):
+    try:
+        _, _, customer_code, executor_code = callback.data.split("_")
+        
+        executor_profile = await get_profile_by_code(executor_code)
+        
+        if executor_profile:
+            await bot.send_message(
+                chat_id=executor_profile['user_id'],
+                text=f"К сожалению, заказчик отклонил ваш отклик.\nНе расстраивайтесь, продолжайте искать!"
+            )
+        
+        await callback.message.edit_text("❌ Вы отклонили этот отклик.")
+        await callback.answer()
+        
+    except Exception as e:
+        logger.error(f"Ошибка отказа: {e}")
+        await callback.answer("❌ Ошибка", show_alert=True)
