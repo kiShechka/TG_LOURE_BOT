@@ -8,10 +8,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.enums import ParseMode
 
 from config import INDUSTRIES, TARGETS, ADMIN_CHAT_ID
-from database.crud import get_profile_by_user_id, get_recommended_profiles, get_visit_count,
-increment_daily_visit, increment_visit_count,save_response, check_response, get_responses_count,
-create_anonymous_chat, get_active_chat_by_users, get_user_active_chat,save_message, close_chat, is_user_banned,
-get_profile_by_code
+from database.crud import get_profile_by_user_id, get_recommended_profiles, get_visit_count,increment_daily_visit, increment_visit_count,save_response, check_response, get_responses_count,create_anonymous_chat, get_active_chat_by_users, get_user_active_chat,save_message, close_chat, is_user_banned,get_profile_by_code
 from utils.filters import apply_filters
 
 logger = logging.getLogger(__name__)
