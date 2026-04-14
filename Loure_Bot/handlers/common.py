@@ -140,7 +140,6 @@ async def cancel_user_delete(callback: CallbackQuery):
 
 @common_router.message(F.text & ~F.command)
 async def handle_text(message: Message, state: FSMContext):
-    """Обработка текстовых сообщений вне состояний"""
     try:
         current_state = await state.get_state()
         
@@ -205,65 +204,234 @@ async def error_handler(event: Any, exception: Exception):
     except Exception as e:
         logger.error(f"Ошибка в обработчике ошибок: {e}", exc_info=True)
 
+async def get_chat_by_codes(code1: str, code2: str) -> dict:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute(
+            """SELECT * FROM chats 
+               WHERE (customer_profile_code = ? AND executor_profile_code = ?)
+               OR (customer_profile_code = ? AND executor_profile_code = ?)""",
+            (code1, code2, code2, code1)
+        )
+        row = await cursor.fetchone()
+        return dict(row) if row else None
 
-@common_router.message(F.text & ~F.command)
-async def handle_chat_message(message: Message, state: FSMContext):
+async def get_or_create_chat(customer_code: str, executor_code: str) -> dict:
+    chat = await get_chat_by_codes(customer_code, executor_code)
+    if chat:
+        return chat
+    
+    chat_code = f"{customer_code}_{executor_code}"
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            """INSERT INTO chats (chat_code, customer_profile_code, executor_profile_code, status)
+               VALUES (?, ?, ?, 'active')""",
+            (chat_code, customer_code, executor_code)
+        )
+        await db.commit()
+    
+    return await get_chat_by_codes(customer_code, executor_code)
+
+
+@common_router.message(Command("send"))
+async def send_anonymous_message(message: Message, state: FSMContext):
     user_id = message.from_user.id
-
     if await is_user_banned(user_id):
         await message.answer("❌ Вы забанены и не можете отправлять сообщения.")
         return
-    chat = await get_user_active_chat(user_id)
-    
-    if not chat:
+    args = message.text.split(maxsplit=2)
+    if len(args) < 3:
+        await message.answer(
+            "❌ Укажите код анкеты и текст сообщения:\n"
+            "/send aB3dE5fG Привет! могу заказать?\n\n"
+            "Код анкеты можно найти в анкете собеседника."
+        )
         return
     
-    if user_id == chat['customer_id']:
-        receiver_id = chat['executor_id']
-        role = "Заказчик"
-    else:
-        receiver_id = chat['customer_id']
-        role = "Исполнитель"
+    target_code = args[1]
+    message_text = args[2]
+    
+    sender_profile = await get_profile_by_user_id(user_id)
+    if not sender_profile:
+        await message.answer("❌ У вас нет анкеты. Создайте её через /start")
+        return
+    target_profile = await get_profile_by_code(target_code)
+    if not target_profile:
+        await message.answer(f"❌ Анкета с кодом {target_code} не найдена")
+        return
+    if sender_profile['code'] == target_code:
+        await message.answer("❌ Нельзя отправить сообщение самому себе")
+        return
+    chat = await get_or_create_chat(sender_profile['code'], target_code)
     
     await save_message(
         chat_code=chat['chat_code'],
         sender_id=user_id,
-        receiver_id=receiver_id,
-        message_text=message.text,
+        receiver_id=target_profile['user_id'],
+        message_text=message_text,
         message_type='text'
     )
     await message.bot.send_message(
-        chat_id=receiver_id,
-        text=f"<b>{role}:</b>\n{message.text}",
+        chat_id=target_profile['user_id'],
+        text=f"<b>{sender_profile['name']}</b> [<code>{sender_profile['code']}</code>]:\n{message_text}\n\n"
+             f"<i>Чтобы ответить, используйте:\n/send {sender_profile['code']} Ваше сообщение</i>",
         parse_mode=ParseMode.HTML
     )
-    await message.answer("✅ Сообщение доставлено собеседнику анонимно.")
+    await message.answer(
+        f"✅ Сообщение отправлено пользователю <b>{target_profile['name']}</b> [<code>{target_code}</code>]!\n\n"
+        f"Текст: {message_text}",
+        parse_mode=ParseMode.HTML
+    )
+
+
+@common_router.message(Command("my_chats"))
+async def my_chats(message: Message):
+    user_id = message.from_user.id
+    profile = await get_profile_by_user_id(user_id)
+    
+    if not profile:
+        await message.answer("❌ У вас нет анкеты")
+        return
+    
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute(
+            """SELECT * FROM chats 
+               WHERE (customer_profile_code = ? OR executor_profile_code = ?) 
+               AND status = 'active'""",
+            (profile['code'], profile['code'])
+        )
+        chats = await cursor.fetchall()
+    
+    if not chats:
+        await message.answer("У вас нет активных чатов.\n\nЧтобы начать чат, откликнитесь на анкету или дождитесь отклика на свою.")
+        return
+    
+    text = "<b>Ваши активные чаты:</b>\n\n"
+    for chat in chats:
+        if chat['customer_profile_code'] == profile['code']:
+            other_code = chat['executor_profile_code']
+            other_profile = await get_profile_by_code(other_code)
+            role = "Вы заказчик"
+        else:
+            other_code = chat['customer_profile_code']
+            other_profile = await get_profile_by_code(other_code)
+            role = "Вы исполнитель"
+        
+        text += f"┌ <b>{other_profile['name']}</b> [<code>{other_code}</code>]\n"
+        text += f"└ {role}\n\n"
+    
+    text += "Чтобы отправить сообщение: /send [код] [текст]"
+    
+    await message.answer(text, parse_mode=ParseMode.HTML)
+
+
+@common_router.message(Command("chat_history"))
+async def chat_history(message: Message):
+    user_id = message.from_user.id
+    profile = await get_profile_by_user_id(user_id)
+    
+    if not profile:
+        await message.answer("❌ У вас нет анкеты")
+        return
+    
+    args = message.text.split()
+    if len(args) < 2:
+        await message.answer("❌ Укажите код анкеты: /chat_history aB3dE5fG")
+        return
+    
+    other_code = args[1]
+    chat = await get_chat_by_codes(profile['code'], other_code)
+    if not chat:
+        await message.answer(f"❌ Чат с анкетой {other_code} не найден")
+        return
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute(
+            "SELECT * FROM messages WHERE chat_code = ? ORDER BY created_at ASC LIMIT 100",
+            (chat['chat_code'],)
+        )
+        messages = await cursor.fetchall()
+    
+    if not messages:
+        await message.answer(f"Чат с анкетой {other_code} пуст")
+        return
+    
+    other_profile = await get_profile_by_code(other_code)
+    
+    text = f"<b>История переписки с {other_profile['name']}</b> [<code>{other_code}</code>]\n"
+    text += f"{'='*40}\n\n"
+    
+    for msg in messages:
+        if msg['sender_id'] == user_id:
+            sender = f"👤 Вы"
+        else:
+            sender = f"{other_profile['name']}"
+        
+        text += f"[{msg['created_at'][:16]}] {sender}:\n{msg['message_text']}\n\n"
+        
+        if len(text) > 3800:
+            await message.answer(text, parse_mode=ParseMode.HTML)
+            text = ""
+    
+    if text:
+        await message.answer(text, parse_mode=ParseMode.HTML)
 
 
 @common_router.message(Command("close_chat"))
 async def close_chat_command(message: Message):
     user_id = message.from_user.id
-    chat = await get_user_active_chat(user_id)
+    profile = await get_profile_by_user_id(user_id)
     
+    if not profile:
+        await message.answer("❌ У вас нет анкеты")
+        return
+    
+    args = message.text.split()
+    if len(args) < 2:
+        await message.answer("❌ Укажите код анкеты: /close_chat aB3dE5fG")
+        return
+    
+    other_code = args[1]
+    
+    chat = await get_chat_by_codes(profile['code'], other_code)
     if not chat:
-        await message.answer("❌ У вас нет активного чата.")
+        await message.answer(f"❌ Чат с анкетой {other_code} не найден")
         return
     
     await close_chat(chat['chat_code'])
-    await message.answer(f"✅ Чат закрыт. Сообщения больше не будут доставляться.")
+    
+    await message.answer(
+        f"✅ Чат с анкетой <code>{other_code}</code> закрыт.\n"
+        f"Сообщения больше не будут доставляться.",
+        parse_mode=ParseMode.HTML
+    )
 
 
 @common_router.message(Command("complaint"))
 async def complaint_command(message: Message):
     user_id = message.from_user.id
-    chat = await get_user_active_chat(user_id)
+    profile = await get_profile_by_user_id(user_id)
     
-    if not chat:
-        await message.answer("❌ У вас нет активного чата.")
+    if not profile:
+        await message.answer("❌ У вас нет анкеты")
         return
     
-    args = message.text.split(maxsplit=1)
-    reason = args[1] if len(args) > 1 else "Не указана"
+    args = message.text.split(maxsplit=2)
+    if len(args) < 2:
+        await message.answer("❌ Укажите код анкеты: /complaint aB3dE5fG [причина]")
+        return
+    
+    target_code = args[1]
+    reason = args[2] if len(args) > 2 else "Не указана"
+    target_profile = await get_profile_by_code(target_code)
+    if not target_profile:
+        await message.answer(f"❌ Анкета с кодом {target_code} не найдена")
+        return
+    chat = await get_chat_by_codes(profile['code'], target_code)
+    if not chat:
+        await message.answer(f"❌ У вас нет чата с анкетой {target_code}")
+        return
     
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
@@ -271,14 +439,17 @@ async def complaint_command(message: Message):
             (user_id, chat['chat_code'], reason)
         )
         await db.commit()
+    
+    from config import ADMIN_CHAT_ID
     if ADMIN_CHAT_ID:
         await message.bot.send_message(
             chat_id=ADMIN_CHAT_ID,
             text=f"⚠️ <b>НОВАЯ ЖАЛОБА!</b>\n\n"
                  f"Чат: {chat['chat_code']}\n"
-                 f"Пользователь: {user_id}\n"
+                 f"От: {user_id}\n"
+                 f"На анкету: {target_code}\n"
                  f"Причина: {reason}",
             parse_mode=ParseMode.HTML
         )
     
-    await message.answer("✅ Жалоба отправлена администратору.")
+    await message.answer(f"✅ Жалоба на анкету {target_code} отправлена администратору.")
