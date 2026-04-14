@@ -329,10 +329,10 @@ async def delete_profile_callback(callback: CallbackQuery):
             )
         
         await callback.answer()
-except Exception as e:
-    logger.error(f"Ошибка удаления анкеты: {e}")
-    await callback.message.edit_text("❌ Произошла ошибка при удалении анкеты.")
-    await callback.answer()
+    except Exception as e:
+        logger.error(f"Ошибка удаления анкеты: {e}")
+        await callback.message.edit_text("❌ Произошла ошибка при удалении анкеты.")
+        await callback.answer()
 
 @admin_router.message(Command("get_chat"))
 async def admin_get_chat(message: Message):
