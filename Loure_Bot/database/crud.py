@@ -608,3 +608,57 @@ async def ban_user(user_id: int, reason: str = None) -> bool:
     except Exception as e:
         logger.error(f"Ошибка бана пользователя: {e}")
         return False
+
+
+async def get_chat_by_codes(code1: str, code2: str) -> dict:
+    try:
+        async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                """SELECT * FROM chats 
+                   WHERE (customer_profile_code = ? AND executor_profile_code = ?)
+                   OR (customer_profile_code = ? AND executor_profile_code = ?)""",
+                (code1, code2, code2, code1)
+            )
+            row = await cursor.fetchone()
+            return dict(row) if row else None
+    except Exception as e:
+        logger.error(f"Ошибка поиска чата: {e}")
+        return None
+
+
+async def get_or_create_chat(customer_code: str, executor_code: str) -> dict:
+    chat = await get_chat_by_codes(customer_code, executor_code)
+    if chat:
+        return chat
+    
+    chat_code = f"{customer_code}_{executor_code}"
+    try:
+        async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
+            await db.execute(
+                """INSERT INTO chats (chat_code, customer_profile_code, executor_profile_code, status)
+                   VALUES (?, ?, ?, 'active')""",
+                (chat_code, customer_code, executor_code)
+            )
+            await db.commit()
+        
+        return await get_chat_by_codes(customer_code, executor_code)
+    except Exception as e:
+        logger.error(f"Ошибка создания чата: {e}")
+        return None
+
+
+async def get_user_active_chats(user_code: str) -> list:
+    try:
+        async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                """SELECT * FROM chats 
+                   WHERE (customer_profile_code = ? OR executor_profile_code = ?) 
+                   AND status = 'active'""",
+                (user_code, user_code)
+            )
+            return [dict(row) for row in await cursor.fetchall()]
+    except Exception as e:
+        logger.error(f"Ошибка получения чатов пользователя: {e}")
+        return []
