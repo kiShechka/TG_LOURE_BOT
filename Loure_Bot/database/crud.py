@@ -1,6 +1,7 @@
 
 import json
 import logging
+import secrets
 from typing import List, Dict, Optional, Tuple
 from datetime import datetime,timedelta,date
 
@@ -442,3 +443,168 @@ async def get_all_profile_codes() -> list:
     except Exception as e:
         logger.error(f"Ошибка получения списка анкет: {e}")
         return []
+
+
+async def save_response(profile_code: str, responder_id: int, responder_name: str) -> bool:
+    try:
+        async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
+            await db.execute(
+                "INSERT OR REPLACE INTO responses (profile_code, responder_id, responder_name, created_at) VALUES (?, ?, ?, ?)",
+                (profile_code, responder_id, responder_name, datetime.now().isoformat())
+            )
+            await db.commit()
+            return True
+    except Exception as e:
+        logger.error(f"Ошибка сохранения отклика: {e}")
+        return False
+
+async def check_response(profile_code: str, responder_id: int) -> bool:
+    try:
+        async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
+            cursor = await db.execute(
+                "SELECT 1 FROM responses WHERE profile_code = ? AND responder_id = ?",
+                (profile_code, responder_id)
+            )
+            return await cursor.fetchone() is not None
+    except Exception as e:
+        logger.error(f"Ошибка проверки отклика: {e}")
+        return False
+
+async def get_responses_count(profile_code: str) -> int:
+    try:
+        async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
+            cursor = await db.execute(
+                "SELECT COUNT(*) FROM responses WHERE profile_code = ?",
+                (profile_code,)
+            )
+            row = await cursor.fetchone()
+            return row[0] if row else 0
+    except Exception as e:
+        logger.error(f"Ошибка подсчёта откликов: {e}")
+        return 0
+
+
+
+async def create_anonymous_chat(customer_id: int, executor_id: int, customer_profile_code: str, executor_profile_code: str) -> str:
+    chat_code = secrets.token_hex(8)
+    try:
+        async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
+            await db.execute(
+                """INSERT INTO chats 
+                   (chat_code, customer_id, executor_id, customer_profile_code, executor_profile_code) 
+                   VALUES (?, ?, ?, ?, ?)""",
+                (chat_code, customer_id, executor_id, customer_profile_code, executor_profile_code)
+            )
+            await db.commit()
+        return chat_code
+    except Exception as e:
+        logger.error(f"Ошибка создания чата: {e}")
+        return None
+
+async def get_chat_by_code(chat_code: str) -> dict:
+    try:
+        async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute("SELECT * FROM chats WHERE chat_code = ?", (chat_code,))
+            row = await cursor.fetchone()
+            return dict(row) if row else None
+    except Exception as e:
+        logger.error(f"Ошибка получения чата: {e}")
+        return None
+
+async def get_active_chat_by_users(customer_id: int, executor_id: int) -> dict:
+    try:
+        async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                """SELECT * FROM chats 
+                   WHERE ((customer_id = ? AND executor_id = ?) OR (customer_id = ? AND executor_id = ?)) 
+                   AND status = 'active'""",
+                (customer_id, executor_id, executor_id, customer_id)
+            )
+            row = await cursor.fetchone()
+            return dict(row) if row else None
+    except Exception as e:
+        logger.error(f"Ошибка поиска чата: {e}")
+        return None
+
+async def get_user_active_chat(user_id: int) -> dict:
+    try:
+        async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                "SELECT * FROM chats WHERE (customer_id = ? OR executor_id = ?) AND status = 'active'",
+                (user_id, user_id)
+            )
+            row = await cursor.fetchone()
+            return dict(row) if row else None
+    except Exception as e:
+        logger.error(f"Ошибка поиска чата пользователя: {e}")
+        return None
+
+async def save_message(chat_code: str, sender_id: int, receiver_id: int, message_text: str, message_type: str = 'text', file_id: str = None) -> bool:
+    try:
+        async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
+            await db.execute(
+                """INSERT INTO messages 
+                   (chat_code, sender_id, receiver_id, message_text, message_type, file_id, created_at) 
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (chat_code, sender_id, receiver_id, message_text, message_type, file_id, datetime.now().isoformat())
+            )
+            await db.commit()
+        return True
+    except Exception as e:
+        logger.error(f"Ошибка сохранения сообщения: {e}")
+        return False
+
+async def get_chat_messages(chat_code: str, limit: int = 200) -> list:
+    try:
+        async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                "SELECT * FROM messages WHERE chat_code = ? ORDER BY created_at ASC LIMIT ?",
+                (chat_code, limit)
+            )
+            return [dict(row) for row in await cursor.fetchall()]
+    except Exception as e:
+        logger.error(f"Ошибка получения сообщений: {e}")
+        return []
+
+async def close_chat(chat_code: str) -> bool:
+    try:
+        async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
+            await db.execute(
+                "UPDATE chats SET status = 'closed', closed_at = ? WHERE chat_code = ?",
+                (datetime.now().isoformat(), chat_code)
+            )
+            await db.commit()
+        return True
+    except Exception as e:
+        logger.error(f"Ошибка закрытия чата: {e}")
+        return False
+
+async def is_user_banned(user_id: int) -> bool:
+    try:
+        async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
+            cursor = await db.execute("SELECT 1 FROM banned_users WHERE user_id = ?", (user_id,))
+            return await cursor.fetchone() is not None
+    except Exception as e:
+        logger.error(f"Ошибка проверки бана: {e}")
+        return False
+
+async def ban_user(user_id: int, reason: str = None) -> bool:
+    try:
+        async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
+            await db.execute(
+                "UPDATE chats SET status = 'banned' WHERE customer_id = ? OR executor_id = ?",
+                (user_id, user_id)
+            )
+            await db.execute(
+                "INSERT OR REPLACE INTO banned_users (user_id, banned_at, reason) VALUES (?, ?, ?)",
+                (user_id, datetime.now().isoformat(), reason)
+            )
+            await db.commit()
+        return True
+    except Exception as e:
+        logger.error(f"Ошибка бана пользователя: {e}")
+        return False
