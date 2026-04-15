@@ -218,7 +218,7 @@ async def show_current_profile(callback: CallbackQuery, state: FSMContext):
         keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
 
         await callback.message.answer(
-            f"Анкета{current_index + 1} из {total}",
+            "__________________________",
             reply_markup=keyboard
         )
         
