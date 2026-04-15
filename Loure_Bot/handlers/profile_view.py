@@ -519,31 +519,63 @@ async def reject_response(callback: CallbackQuery, bot: Bot):
         await callback.answer("❌ Ошибка", show_alert=True)
 
 @view_router.callback_query(F.data.startswith("react_"))
-async def handle_reaction(callback: CallbackQuery):
+async def handle_reaction(callback: CallbackQuery, state: FSMContext):
     try:
         _, profile_code, reaction_type = callback.data.split("_")
+        
         emoji_map = {"like": "❤️", "fire": "✨", "art": "💫"}
         emoji = emoji_map.get(reaction_type, "❤️")
         
         await save_reaction(profile_code, callback.from_user.id, emoji)
+        
+        data = await state.get_data()
+        current_index = data.get('current_index', 0)
+        profiles = data.get('recommended_profiles', [])
+        total = data.get('total_profiles', 0)
+        
+        if current_index >= len(profiles):
+            return
+        
+        current_profile = profiles[current_index]
+        
+        target = current_profile.get('target', '')
+        keyboard_buttons = []
+        
         reactions = await get_reactions(profile_code)
-        
-        new_buttons = []
-        for e, name in [("❤️", "like"), ("✨", "fire"), ("💫", "art")]:
-            count = reactions.get(e, 0)
-            text = f"{e} {count}" if count > 0 else e
-            new_buttons.append(InlineKeyboardButton(
+        reaction_buttons = []
+        for emoji_btn, cb_name in [("❤️", "like"), ("✨", "fire"), ("💫", "art")]:
+            count = reactions.get(emoji_btn, 0)
+            text = f"{emoji_btn} {count}" if count > 0 else emoji_btn
+            reaction_buttons.append(InlineKeyboardButton(
                 text=text,
-                callback_data=f"react_{profile_code}_{name}"
+                callback_data=f"react_{profile_code}_{cb_name}"
             ))
+        if reaction_buttons:
+            keyboard_buttons.append(reaction_buttons)
         
-        await callback.message.edit_reply_markup(
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                new_buttons,
-            ])
-        )
+        if target == 'executor':
+            responses_count = await get_responses_count(profile_code)
+            keyboard_buttons.append([InlineKeyboardButton(
+                text=f"Откликнуться ({responses_count})",
+                callback_data=f"respond_{profile_code}"
+            )])
+        else:
+            channel_link = extract_channel_link(current_profile.get('description', ''))
+            if channel_link:
+                visit_count = await get_visit_count(profile_code)
+                keyboard_buttons.append([InlineKeyboardButton(
+                    text=f"На канал ({visit_count})",
+                    callback_data=f"visit_channel_{profile_code}"
+                )])
         
-        await callback.answer(f"Вы поставили {emoji}")
+        nav_buttons = []
+        if current_index + 1 < total:
+            nav_buttons.append(InlineKeyboardButton(text=f"Дальше → ({current_index + 1}/{total})", callback_data="next_profile"))
+        if nav_buttons:
+            keyboard_buttons.append(nav_buttons)
+        
+        keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
+        await callback.message.edit_reply_markup(reply_markup=keyboard)
         
     except Exception as e:
         logger.error(f"Ошибка реакции: {e}")
