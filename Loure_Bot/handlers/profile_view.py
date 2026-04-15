@@ -176,7 +176,7 @@ async def show_current_profile(callback: CallbackQuery, state: FSMContext):
         keyboard_buttons = []
         reaction_buttons = []
 
-        reactions = await get_reactions(profile['code'])
+        reactions = await get_reactions(current_profile['code'])
         
         for emoji, callback_name in [("❤️", "like"), ("✨", "fire"), ("💫", "art")]:
             count = reactions.get(emoji, 0)
