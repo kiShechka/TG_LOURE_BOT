@@ -204,35 +204,6 @@ async def error_handler(event: Any, exception: Exception):
     except Exception as e:
         logger.error(f"Ошибка в обработчике ошибок: {e}", exc_info=True)
 
-async def get_chat_by_codes(code1: str, code2: str) -> dict:
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        cursor = await db.execute(
-            """SELECT * FROM chats 
-               WHERE (customer_profile_code = ? AND executor_profile_code = ?)
-               OR (customer_profile_code = ? AND executor_profile_code = ?)""",
-            (code1, code2, code2, code1)
-        )
-        row = await cursor.fetchone()
-        return dict(row) if row else None
-
-async def get_or_create_chat(customer_code: str, executor_code: str) -> dict:
-    chat = await get_chat_by_codes(customer_code, executor_code)
-    if chat:
-        return chat
-    
-    chat_code = f"{customer_code}_{executor_code}"
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute(
-            """INSERT INTO chats (chat_code, customer_profile_code, executor_profile_code, status)
-               VALUES (?, ?, ?, 'active')""",
-            (chat_code, customer_code, executor_code)
-        )
-        await db.commit()
-    
-    return await get_chat_by_codes(customer_code, executor_code)
-
-
 @common_router.message(Command("send"))
 async def send_message_to_chat(message: Message):
     user_id = message.from_user.id
@@ -255,8 +226,6 @@ async def send_message_to_chat(message: Message):
     if not target_profile:
         await message.answer(f"❌ Анкета {target_code} не найдена")
         return
-    
-    # Сохраняем сообщение в БД
     chat_code = f"{sender_profile['code']}_{target_code}"
     
     await save_message(
@@ -266,7 +235,6 @@ async def send_message_to_chat(message: Message):
         message_text=msg_text
     )
     
-    # Отправляем получателю
     await message.bot.send_message(
         chat_id=target_profile['user_id'],
         text=f"<b>{sender_profile['name']}</b> [<code>{sender_profile['code']}</code>]:\n{msg_text}\n\n"
