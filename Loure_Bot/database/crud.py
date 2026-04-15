@@ -662,3 +662,30 @@ async def get_user_active_chats(user_code: str) -> list:
     except Exception as e:
         logger.error(f"Ошибка получения чатов пользователя: {e}")
         return []
+
+
+async def save_reaction(profile_code: str, user_id: int, reaction: str) -> bool:
+    try:
+        async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
+            await db.execute(
+                "INSERT OR REPLACE INTO reactions (profile_code, user_id, reaction) VALUES (?, ?, ?)",
+                (profile_code, user_id, reaction)
+            )
+            await db.commit()
+            return True
+    except Exception as e:
+        logger.error(f"Ошибка сохранения реакции: {e}")
+        return False
+
+async def get_reactions(profile_code: str) -> dict:
+    try:
+        async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
+            cursor = await db.execute(
+                "SELECT reaction, COUNT(*) FROM reactions WHERE profile_code = ? GROUP BY reaction",
+                (profile_code,)
+            )
+            rows = await cursor.fetchall()
+            return {row[0]: row[1] for row in rows}
+    except Exception as e:
+        logger.error(f"Ошибка получения реакций: {e}")
+        return {}
