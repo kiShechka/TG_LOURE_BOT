@@ -174,6 +174,21 @@ async def show_current_profile(callback: CallbackQuery, state: FSMContext):
         target = current_profile.get('target','')
         
         keyboard_buttons = []
+
+reactions = await get_reactions(profile['code'])
+
+reaction_buttons = []
+for emoji, callback_name in [("❤️", "like"), ("✨", "fire"), ("💫", "art")]:
+    count = reactions.get(emoji, 0)
+    text = f"{emoji} {count}" if count > 0 else emoji
+    reaction_buttons.append(InlineKeyboardButton(
+        text=text,
+        callback_data=f"react_{profile['code']}_{callback_name}"
+    ))
+
+if reaction_buttons:
+    keyboard_buttons.append(reaction_buttons)
+    
         if target == 'executor':
             responses_count = await get_responses_count(current_profile['code'])
             keyboard_buttons.append([InlineKeyboardButton(
