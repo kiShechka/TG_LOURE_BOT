@@ -234,54 +234,47 @@ async def get_or_create_chat(customer_code: str, executor_code: str) -> dict:
 
 
 @common_router.message(Command("send"))
-async def send_anonymous_message(message: Message, state: FSMContext):
+async def send_message_to_chat(message: Message):
     user_id = message.from_user.id
-    if await is_user_banned(user_id):
-        await message.answer("❌ Вы забанены и не можете отправлять сообщения.")
-        return
+    
     args = message.text.split(maxsplit=2)
     if len(args) < 3:
         await message.answer(
-            "❌ Укажите код анкеты и текст сообщения:\n"
-            "/send aB3dE5fG Привет! могу заказать?\n\n"
-            "Код анкеты можно найти в анкете собеседника."
+            "❌ Используйте: /send КОД_АНКЕТЫ ТЕКСТ\n\n"
+            "Пример: /send aB3dE5fG Привет!"
         )
         return
     
     target_code = args[1]
-    message_text = args[2]
-    
+    msg_text = args[2]
     sender_profile = await get_profile_by_user_id(user_id)
     if not sender_profile:
-        await message.answer("❌ У вас нет анкеты. Создайте её через /start")
+        await message.answer("❌ У вас нет анкеты")
         return
     target_profile = await get_profile_by_code(target_code)
     if not target_profile:
-        await message.answer(f"❌ Анкета с кодом {target_code} не найдена")
+        await message.answer(f"❌ Анкета {target_code} не найдена")
         return
-    if sender_profile['code'] == target_code:
-        await message.answer("❌ Нельзя отправить сообщение самому себе")
-        return
-    chat = await get_or_create_chat(sender_profile['code'], target_code)
+    
+    # Сохраняем сообщение в БД
+    chat_code = f"{sender_profile['code']}_{target_code}"
     
     await save_message(
-        chat_code=chat['chat_code'],
+        chat_code=chat_code,
         sender_id=user_id,
         receiver_id=target_profile['user_id'],
-        message_text=message_text,
-        message_type='text'
+        message_text=msg_text
     )
+    
+    # Отправляем получателю
     await message.bot.send_message(
         chat_id=target_profile['user_id'],
-        text=f"<b>{sender_profile['name']}</b> [<code>{sender_profile['code']}</code>]:\n{message_text}\n\n"
-             f"<i>Чтобы ответить, используйте:\n/send {sender_profile['code']} Ваше сообщение</i>",
+        text=f"<b>{sender_profile['name']}</b> [<code>{sender_profile['code']}</code>]:\n{msg_text}\n\n"
+             f"Ответить: /send {sender_profile['code']} Ваше сообщение",
         parse_mode=ParseMode.HTML
     )
-    await message.answer(
-        f"✅ Сообщение отправлено пользователю <b>{target_profile['name']}</b> [<code>{target_code}</code>]!\n\n"
-        f"Текст: {message_text}",
-        parse_mode=ParseMode.HTML
-    )
+    
+    await message.answer(f"✅ Сообщение отправлено {target_profile['name']}")
 
 
 @common_router.message(Command("my_chats"))
