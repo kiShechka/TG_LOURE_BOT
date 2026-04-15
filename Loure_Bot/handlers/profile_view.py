@@ -517,3 +517,34 @@ async def reject_response(callback: CallbackQuery, bot: Bot):
     except Exception as e:
         logger.error(f"Ошибка отказа: {e}")
         await callback.answer("❌ Ошибка", show_alert=True)
+
+@view_router.callback_query(F.data.startswith("react_"))
+async def handle_reaction(callback: CallbackQuery):
+    try:
+        _, profile_code, reaction_type = callback.data.split("_")
+        emoji_map = {"like": "❤️", "fire": "✨", "art": "💫"}
+        emoji = emoji_map.get(reaction_type, "❤️")
+        
+        await save_reaction(profile_code, callback.from_user.id, emoji)
+        reactions = await get_reactions(profile_code)
+        
+        new_buttons = []
+        for e, name in [("❤️", "like"), ("✨", "fire"), ("💫", "art")]:
+            count = reactions.get(e, 0)
+            text = f"{e} {count}" if count > 0 else e
+            new_buttons.append(InlineKeyboardButton(
+                text=text,
+                callback_data=f"react_{profile_code}_{name}"
+            ))
+        
+        await callback.message.edit_reply_markup(
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                new_buttons,
+            ])
+        )
+        
+        await callback.answer(f"Вы поставили {emoji}")
+        
+    except Exception as e:
+        logger.error(f"Ошибка реакции: {e}")
+        await callback.answer("❌ Ошибка", show_alert=True)
