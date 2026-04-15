@@ -138,55 +138,6 @@ async def cancel_user_delete(callback: CallbackQuery):
     await callback.message.edit_text("✅ Удаление анкеты отменено.")
     await callback.answer()
 
-@common_router.message(F.text & ~F.command)
-async def handle_text(message: Message, state: FSMContext):
-    try:
-        current_state = await state.get_state()
-        
-        if current_state:
-            return
-        profile = await get_profile_by_user_id(message.from_user.id)
-        
-        if profile:
-            text = (
-                "📋 <b>Доступные действия:</b>\n\n"
-                "2. /my_ancet - Моя анкета\n"
-                "3. /edit - Редактировать анкету\n"
-                "4. /delete - Удалить анкету\n"
-                "5. /ban_info - Правила\n\n"
-                "Или используйте кнопки ниже:"
-            )
-            
-            keyboard = InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="📋 Моя анкета", callback_data="my_profile")],
-                [InlineKeyboardButton(text="✏️ Редактировать", callback_data="edit_profile")],
-                [InlineKeyboardButton(text="🗑️ Удалить", callback_data="delete_confirm")],
-                [InlineKeyboardButton(text="🔍 Смотреть анкеты", callback_data="view_profiles")],
-                [InlineKeyboardButton(text="❗️ Правила", callback_data="ban_info")]
-
-])
-        else:
-            text = (
-                "👋 <b>Привет!</b>\n\n"
-                "У вас еще нет анкеты.\n"
-                "Создайте её, чтобы начать пользоваться ботом!\n\n"
-                "Доступные команды:\n"
-                "/start - Главное меню\n"
-                "/create - Создать анкету\n"
-                "/cancel - Отменить действие"
-            )
-            
-            keyboard = get_main_menu_keyboard()
-        
-        await message.answer(
-            text,
-            reply_markup=keyboard,
-            parse_mode=ParseMode.HTML
-        )
-        
-    except Exception as e:
-        logger.error(f"Ошибка в handle_text: {e}", exc_info=True)
-        await message.answer("❌ Произошла ошибка. Пожалуйста, попробуйте позже.")
 
 async def error_handler(event: Any, exception: Exception):
     try:
