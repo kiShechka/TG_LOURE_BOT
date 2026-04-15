@@ -206,6 +206,8 @@ async def error_handler(event: Any, exception: Exception):
 
 @common_router.message(Command("send"))
 async def send_message_to_chat(message: Message):
+    await message.answer("команда сенд получена")
+    
     user_id = message.from_user.id
     
     args = message.text.split(maxsplit=2)
