@@ -1,4 +1,5 @@
 import logging
+import aiosqlite
 from typing import Any, Dict
 
 from aiogram import Bot, Router, F
@@ -9,6 +10,7 @@ from aiogram.enums import ParseMode
 
 from database.crud import delete_profile_by_user_id, get_profile_by_user_id,get_user_active_chat, save_message, close_chat, is_user_banned, get_chat_by_codes, get_chat_messages,get_or_create_chat,get_profile_by_code
 from utils.keyboard import get_main_menu_keyboard
+from config import DB_PATH
 
 logger = logging.getLogger(__name__)
 common_router = Router()
