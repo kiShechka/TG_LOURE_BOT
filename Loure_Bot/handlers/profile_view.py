@@ -113,7 +113,7 @@ async def start_viewing(callback: CallbackQuery, state: FSMContext):
         recommended_profiles = await apply_filters(user_profile)
         if not recommended_profiles:
             await callback.message.edit_text(
-                "👀 Пока нет подходящих анкет.\n\n"
+                "Пока нет подходящих анкет.\n\n"
                 "Попробуйте позже или измените критерии поиска.",
                 reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                     [InlineKeyboardButton(text="✏️ Редактировать анкету", callback_data='edit_profile')]
@@ -218,7 +218,6 @@ async def show_current_profile(callback: CallbackQuery, state: FSMContext):
         keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
 
         await callback.message.answer(
-            f"📄 Анкета {current_index + 1} из {total}",
             reply_markup=keyboard
         )
         
