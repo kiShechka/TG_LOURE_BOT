@@ -183,7 +183,7 @@ async def show_current_profile(callback: CallbackQuery, state: FSMContext):
             text = f"{emoji} {count}" if count > 0 else emoji
             reaction_buttons.append(InlineKeyboardButton(
                 text=text,
-                callback_data=f"react_{profile['code']}_{callback_name}"
+                callback_data=f"react_{current_profile['code']}_{callback_name}"
             ))
         
         if reaction_buttons:
