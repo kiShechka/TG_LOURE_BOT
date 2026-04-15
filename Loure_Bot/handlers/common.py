@@ -204,48 +204,6 @@ async def error_handler(event: Any, exception: Exception):
     except Exception as e:
         logger.error(f"Ошибка в обработчике ошибок: {e}", exc_info=True)
 
-@common_router.message(Command("send"))
-async def send_message_to_chat(message: Message):
-    await message.answer("команда сенд получена")
-    
-    user_id = message.from_user.id
-    
-    args = message.text.split(maxsplit=2)
-    if len(args) < 3:
-        await message.answer(
-            "❌ Используйте: /send КОД_АНКЕТЫ ТЕКСТ\n\n"
-            "Пример: /send aB3dE5fG Привет!"
-        )
-        return
-    
-    target_code = args[1]
-    msg_text = args[2]
-    sender_profile = await get_profile_by_user_id(user_id)
-    if not sender_profile:
-        await message.answer("❌ У вас нет анкеты")
-        return
-    target_profile = await get_profile_by_code(target_code)
-    if not target_profile:
-        await message.answer(f"❌ Анкета {target_code} не найдена")
-        return
-    chat_code = f"{sender_profile['code']}_{target_code}"
-    
-    await save_message(
-        chat_code=chat_code,
-        sender_id=user_id,
-        receiver_id=target_profile['user_id'],
-        message_text=msg_text
-    )
-    
-    await message.bot.send_message(
-        chat_id=target_profile['user_id'],
-        text=f"<b>{sender_profile['name']}</b> [<code>{sender_profile['code']}</code>]:\n{msg_text}\n\n"
-             f"Ответить: /send {sender_profile['code']} Ваше сообщение",
-        parse_mode=ParseMode.HTML
-    )
-    
-    await message.answer(f"✅ Сообщение отправлено {target_profile['name']}")
-
 
 @common_router.message(Command("my_chats"))
 async def my_chats(message: Message):
@@ -416,3 +374,53 @@ async def complaint_command(message: Message):
         )
     
     await message.answer(f"✅ Жалоба на анкету {target_code} отправлена администратору.")
+
+
+@common_router.message(Command("send"))
+async def send_message_handler(message: Message):
+    await message.answer("✅ Команда /send получена!")
+    
+    args = message.text.split(maxsplit=2)
+    if len(args) < 3:
+        await message.answer(
+            "❌ Используйте: /send КОД_АНКЕТЫ ТЕКСТ\n\n"
+            "Пример: /send aB3dE5fG Привет!"
+        )
+        return
+    
+    target_code = args[1]
+    msg_text = args[2]
+    
+    from database.crud import get_profile_by_user_id, get_profile_by_code, save_message
+    sender_profile = await get_profile_by_user_id(message.from_user.id)
+    
+    if not sender_profile:
+        await message.answer("❌ У вас нет анкеты")
+        return
+    
+    target_profile = await get_profile_by_code(target_code)
+    if not target_profile:
+        await message.answer(f"❌ Анкета {target_code} не найдена")
+        return
+    
+    if sender_profile['code'] == target_code:
+        await message.answer("❌ Нельзя отправить самому себе")
+        return
+    
+    chat_code = f"{sender_profile['code']}_{target_code}"
+    await save_message(
+        chat_code=chat_code,
+        sender_id=message.from_user.id,
+        receiver_id=target_profile['user_id'],
+        message_text=msg_text
+    )
+    
+    await message.bot.send_message(
+        chat_id=target_profile['user_id'],
+        text=f"💬 <b>{sender_profile['name']}</b> [<code>{sender_profile['code']}</code>]:\n{msg_text}",
+        parse_mode="HTML"
+    )
+    
+    await message.answer(f"✅ Сообщение отправлено {target_profile['name']}")
+
+
