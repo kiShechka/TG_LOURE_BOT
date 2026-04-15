@@ -462,10 +462,10 @@ async def accept_response(callback: CallbackQuery, bot: Bot):
                          f"Код чата: <code>{chat_code}</code>\n\n"
                          f"<b>Как это работает:</b>\n"
                          f"• Отправляйте сообщения через команду:\n"
-                         f"<code>/send {other_code} Ваше сообщение</code>\n\n"
+                         f"<code>/send код анкеты Ваше сообщение</code>\n\n"
                          f"• Чтобы посмотреть все чаты: /my_chats\n"
-                         f"• Чтобы закрыть чат: /close_chat {other_code}\n"
-                         f"• Чтобы пожаловаться: /complaint {other_code} причина\n"
+                         f"• Чтобы закрыть чат: /close_chat код анкеты\n"
+                         f"• Чтобы пожаловаться: /complaint код анкеты причина\n"
                          f"Чтоюы посмотреть историю чатов: /chat_history\n\n"
                          f"<i>Все сообщения анонимны и сохраняются для безопасности</i>",
                     parse_mode=ParseMode.HTML
