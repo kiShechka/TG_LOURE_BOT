@@ -343,6 +343,54 @@ async def handle_visit_channel(callback: CallbackQuery):
         logger.error(f"Ошибка в handle_visit_channel: {e}", exc_info=True)
         await callback.answer("❌ Произошла ошибка", show_alert=True)
 
+async def send_profile_to_user(bot: Bot, user_id: int, profile: dict):
+    try:
+        media = profile.get('media', [])
+        
+        caption = (
+            f"👤 <b>{profile['name']}</b>\n"
+            f"Отрасль: {INDUSTRIES.get(profile['industry'], {}).get('name', profile['industry'])}\n\n"
+            f"📝 <b>Описание:</b>\n{profile['description']}\n\n"
+            f"<b>Ищет:</b> {TARGETS.get(profile['target'], profile['target'])}\n"
+            f"<b>Код:</b> <code>{profile['code']}</code>\n\n"
+            f"<i>✨ Этот пользователь откликнулся на вашу анкету!</i>"
+        )
+        
+        if media:
+            media_group = []
+            for i, (media_type, file_id) in enumerate(media):
+                if media_type == 'photo':
+                    if i == 0:
+                        media_group.append(InputMediaPhoto(media=file_id, caption=caption, parse_mode=ParseMode.HTML))
+                    else:
+                        media_group.append(InputMediaPhoto(media=file_id))
+                elif media_type == 'video':
+                    if i == 0:
+                        media_group.append(InputMediaVideo(media=file_id, caption=caption, parse_mode=ParseMode.HTML))
+                    else:
+                        media_group.append(InputMediaVideo(media=file_id))
+            
+            if media_group:
+                await bot.send_media_group(chat_id=user_id, media=media_group)
+        else:
+            await bot.send_message(chat_id=user_id, text=caption, parse_mode=ParseMode.HTML)
+        
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [
+                InlineKeyboardButton(text="✅ Принять", callback_data=f"accept_response_{profile['code']}"),
+                InlineKeyboardButton(text="❌ Отказать", callback_data=f"reject_response_{profile['code']}")
+            ]
+        ])
+        
+        await bot.send_message(
+            chat_id=user_id,
+            text="📌 Что делаем с этим откликом?",
+            reply_markup=keyboard
+        )
+        
+    except Exception as e:
+        logger.error(f"Ошибка отправки анкеты пользователю {user_id}: {e}")
+
 
 @view_router.callback_query(F.data.startswith("respond_"))
 async def handle_response(callback: CallbackQuery, bot: Bot):
@@ -363,7 +411,7 @@ async def handle_response(callback: CallbackQuery, bot: Bot):
             await callback.answer("✅ Вы уже откликались на эту анкету", show_alert=True)
             return
         await save_response(customer_profile['code'], callback.from_user.id, executor_profile['name'])
-        await send_simple_profile(
+        await send_profile_to_user(
             bot=bot,
             user_id=customer_profile['user_id'],
             profile=executor_profile,
