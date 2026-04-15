@@ -363,7 +363,7 @@ async def handle_response(callback: CallbackQuery, bot: Bot):
             await callback.answer("✅ Вы уже откликались на эту анкету", show_alert=True)
             return
         await save_response(customer_profile['code'], callback.from_user.id, executor_profile['name'])
-        await send_simple_profile_to_user(
+        await send_simple_profile(
             bot=bot,
             user_id=customer_profile['user_id'],
             profile=executor_profile,
