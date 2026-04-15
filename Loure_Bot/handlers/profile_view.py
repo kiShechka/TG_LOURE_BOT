@@ -371,8 +371,6 @@ async def handle_response(callback: CallbackQuery, bot: Bot):
         )
         
         await callback.answer("✅ Ваша анкета отправлена заказчику!")
-        
-        # Подтверждение исполнителю
         await callback.message.answer(
             "✅ Вы откликнулись на анкету!\n"
             "Заказчик получил вашу анкету и свяжется с вами, если вы заинтересовали."
@@ -384,42 +382,6 @@ async def handle_response(callback: CallbackQuery, bot: Bot):
         logger.error(f"Ошибка отклика: {e}")
         await callback.answer("❌ Ошибка при отправке отклика", show_alert=True)
 
-
-async def send_simple_profile_to_user(bot: Bot, user_id: int, profile: dict, response_code: str = None):
-    try:
-        caption = (
-            f"👤 <b>{profile['name']}</b>\n"
-            f"📝 <b>Описание:</b>\n{profile['description']}\n\n"
-            f"<b>Код:</b> <code>{profile['code']}</code>\n\n"
-            f"<i>Этот пользователь откликнулся на вашу анкету!</i>"
-        )
-        media = profile.get('media', [])
-        if media:
-            for media_type, file_id in media:
-                if media_type == 'photo':
-                    await bot.send_photo(chat_id=user_id, photo=file_id, caption=caption if media_type == media[0][0] else None, parse_mode=ParseMode.HTML)
-                elif media_type == 'video':
-                    await bot.send_video(chat_id=user_id, video=file_id, caption=caption if media_type == media[0][0] else None, parse_mode=ParseMode.HTML)
-        else:
-            await bot.send_message(chat_id=user_id, text=caption, parse_mode=ParseMode.HTML)
-        
-        # Кнопки действий для заказчика
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [
-                InlineKeyboardButton(text="✅ Принять", callback_data=f"accept_response_{response_code}_{profile['code']}"),
-                InlineKeyboardButton(text="❌ Отказать", callback_data=f"reject_response_{response_code}_{profile['code']}")
-            ]
-        ])
-        
-        await bot.send_message(
-            chat_id=user_id,
-            text="<b>Что делаем с этим откликом?</b>",
-            parse_mode=ParseMode.HTML,
-            reply_markup=keyboard
-        )
-        
-    except Exception as e:
-        logger.error(f"Ошибка отправки анкеты пользователю {user_id}: {e}")
 
 
 @view_router.callback_query(F.data.startswith("accept_response_"))
@@ -454,12 +416,13 @@ async def accept_response(callback: CallbackQuery, bot: Bot, state: FSMContext):
                          f"Ваша роль: {role}\n"
                          f"Код чата: <code>{chat_code}</code>\n\n"
                          f"<b>Как это работает:</b>\n"
-                         f"• Отправляйте сообщения в этот диалог\n"
+                         f"• Отправляйте сообщения в этот диалог /send код <сообщение>\n"
                          f"• Бот будет пересылать их собеседнику анонимно\n"
                          f"• Ваши данные (имя, username) НЕ раскрываются\n"
                          f"• Все сообщения логируются для безопасности\n\n"
                          f"Чтобы завершить чат: /close_chat\n"
-                         f"Чтобы пожаловаться: /complaint [причина]",
+                         f"Чтобы пожаловаться: /complaint [причина]"
+                         f"Чтобы посмотреть историю чатов: /chat_history",
                     parse_mode=ParseMode.HTML
                 )
             
