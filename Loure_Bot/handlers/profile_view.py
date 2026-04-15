@@ -415,7 +415,6 @@ async def handle_response(callback: CallbackQuery, bot: Bot):
             bot=bot,
             user_id=customer_profile['user_id'],
             profile=executor_profile,
-            response_code=code
         )
         
         await callback.answer("✅ Ваша анкета отправлена заказчику!")
