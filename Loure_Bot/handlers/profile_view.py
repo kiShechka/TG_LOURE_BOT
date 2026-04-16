@@ -1,13 +1,15 @@
 
 import logging
 import re
+import aiosqlite
 from typing import List, Dict, Optional
+from datatime import datataime
 from aiogram import Router, F, Bot
 from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InputMediaVideo, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.fsm.context import FSMContext
 from aiogram.enums import ParseMode
 
-from config import INDUSTRIES, TARGETS, ADMIN_CHAT_ID
+from config import INDUSTRIES, TARGETS, ADMIN_CHAT_ID, DB_PATH
 from database.crud import get_profile_by_user_id, get_recommended_profiles, get_visit_count,increment_daily_visit, increment_visit_count,save_response, check_response, get_responses_count, get_active_chat_by_users,get_user_active_chat,save_message, close_chat, is_user_banned,get_profile_by_code,get_reactions,save_reaction
 from utils.filters import apply_filters
 
@@ -469,20 +471,29 @@ async def accept_response(callback: CallbackQuery, bot: Bot):
             )
         else:
             chat_code = f"{customer_code}_{executor_code}"
+            async with aiosqlite.connect(DB_PATH) as db:
+                await db.execute(
+                    """INSERT INTO chats 
+                       (chat_code, customer_profile_code, executor_profile_code, status, created_at) 
+                       VALUES (?, ?, ?, 'active', ?)""",
+                    (chat_code, customer_code, executor_code, datetime.now().isoformat())
+                )
+                await db.commit()
+            
             for user_id, role in [(customer_profile['user_id'], 'Заказчик'), (executor_profile['user_id'], 'Исполнитель')]:
+                other_code = executor_code if role == 'Заказчик' else customer_code
+                
                 await bot.send_message(
                     chat_id=user_id,
-                    text=f"<b>Создан анонимный чат!</b>\n\n"
+                    text=f"🆕 <b>Создан анонимный чат!</b>\n\n"
                          f"Ваша роль: {role}\n"
                          f"Код чата: <code>{chat_code}</code>\n\n"
                          f"<b>Как это работает:</b>\n"
-                         f"• Отправляйте сообщения через команду:\n"
-                         f"<code>/send код анкеты Ваше сообщение</code>\n\n"
-                         f"• Чтобы посмотреть все чаты: /my_chats\n"
-                         f"• Чтобы закрыть чат: /close_chat код анкеты\n"
-                         f"• Чтобы пожаловаться: /complaint код анкеты причина\n"
-                         f"Чтоюы посмотреть историю чатов: /chat_history\n\n"
-                         f"<i>Все сообщения анонимны и сохраняются для безопасности</i>",
+                         f"• Отправляйте сообщения:\n<code>/send {other_code} Ваше сообщение</code>\n\n"
+                         f"• Все чаты: /my_chats\n"
+                         f"• История: /chat_history {other_code}\n"
+                         f"• Закрыть чат: /close_chat {other_code}\n"
+                         f"• Пожаловаться: /complaint {other_code} причина",
                     parse_mode=ParseMode.HTML
                 )
             
@@ -496,26 +507,6 @@ async def accept_response(callback: CallbackQuery, bot: Bot):
         
     except Exception as e:
         logger.error(f"Ошибка принятия отклика: {e}")
-        await callback.answer("❌ Ошибка", show_alert=True)
-
-@view_router.callback_query(F.data.startswith("reject_response_"))
-async def reject_response(callback: CallbackQuery, bot: Bot):
-    try:
-        _, _, customer_code, executor_code = callback.data.split("_")
-        
-        executor_profile = await get_profile_by_code(executor_code)
-        
-        if executor_profile:
-            await bot.send_message(
-                chat_id=executor_profile['user_id'],
-                text=f"К сожалению, заказчик отклонил ваш отклик.\nНе расстраивайтесь, продолжайте искать!"
-            )
-        
-        await callback.message.edit_text("❌ Вы отклонили этот отклик.")
-        await callback.answer()
-        
-    except Exception as e:
-        logger.error(f"Ошибка отказа: {e}")
         await callback.answer("❌ Ошибка", show_alert=True)
 
 @view_router.callback_query(F.data.startswith("react_"))
