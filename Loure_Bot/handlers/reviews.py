@@ -106,7 +106,7 @@ async def my_reviews(message: Message):
         await message.answer("❌ У вас нет анкеты")
         return
     
-    if user_profile.get('target') != 'customer':
+    if user_profile.get('target') != 'client':
         await message.answer("❌ Только исполнители могут просматривать отзывы о себе")
         return
     
