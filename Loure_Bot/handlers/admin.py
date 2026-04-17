@@ -48,7 +48,6 @@ async def delete_profile_command(message: Message):
     if not await check_admin(message):
         return
     
-    # Проверяем аргументы
     if not message.text or len(message.text.split()) < 2:
         await message.answer(
             "📝 <b>Удаление анкеты</b>\n\n"
@@ -100,8 +99,8 @@ async def set_admin_chat_command(message: Message):
         if success:
             await message.answer(
                 f"✅ Этот чат установлен как админский!\n\n"
-                f"🆔 Chat ID: <code>{chat_id}</code>\n"
-                f"📝 Название: {message.chat.title or 'Личный чат'}\n\n"
+                f"Chat ID: <code>{chat_id}</code>\n"
+                f"Название: {message.chat.title or 'Личный чат'}\n\n"
                 f"Теперь бот будет отправлять сюда уведомления о новых анкетах.",
                 parse_mode=ParseMode.HTML
             )
@@ -120,7 +119,7 @@ async def profile_info(message: Message):
     
     if not message.text or len(message.text.split()) < 2:
         await message.answer(
-            "📋 <b>Информация об анкете</b>\n\n"
+            "<b>Информация об анкете</b>\n\n"
             "Использование: <code>/info &lt;код&gt;</code>\n"
             "или <code>/info &lt;user_id&gt;</code>\n\n"
             "Пример:\n"
@@ -153,14 +152,14 @@ async def profile_info(message: Message):
                 created_at = str(created_at)
         
         text = (
-            f"📋 <b>Информация об анкете</b>\n\n"
+            f"<b>Информация об анкете</b>\n\n"
             f"👤 <b>Имя:</b> {profile.get('name', 'Не указано')}\n"
-            f"🔗 <b>Username:</b> @{profile.get('username', 'нет')}\n"
-            f"🆔 <b>User ID:</b> <code>{profile.get('user_id')}</code>\n"
-            f"🏢 <b>Отрасль:</b> {INDUSTRIES.get(profile.get('industry', ''), {}).get('name', profile.get('industry', 'Неизвестно'))}\n"
-            f"🎯 <b>Ищет:</b> {TARGETS.get(profile.get('target', ''), profile.get('target', 'Неизвестно'))}\n"
-            f"📅 <b>Создана:</b> {created_at}\n"
-            f"🔐 <b>Код:</b> <code>{profile.get('code', 'Нет кода')}</code>\n\n"
+            f"<b>Username:</b> @{profile.get('username', 'нет')}\n"
+            f"<b>User ID:</b> <code>{profile.get('user_id')}</code>\n"
+            f"<b>Отрасль:</b> {INDUSTRIES.get(profile.get('industry', ''), {}).get('name', profile.get('industry', 'Неизвестно'))}\n"
+            f"<b>Ищет:</b> {TARGETS.get(profile.get('target', ''), profile.get('target', 'Неизвестно'))}\n"
+            f"<b>Создана:</b> {created_at}\n"
+            f"<b>Код:</b> <code>{profile.get('code', 'Нет кода')}</code>\n\n"
             f"<b>Описание:</b>\n{profile.get('description', 'Нет описания')[:500]}..."
         )
         
@@ -171,7 +170,7 @@ async def profile_info(message: Message):
                     callback_data=f"admin_delete_{profile.get('code')}"
                 ),
                 InlineKeyboardButton(
-                    text="📊 Статистика", 
+                    text="Статистика", 
                     callback_data=f"admin_stats_{profile.get('user_id')}"
                 )
             ]
@@ -194,10 +193,9 @@ async def admin_stats(message: Message):
             await message.answer("❌ Не удалось получить статистику.")
             return
         
-        # Формируем текст статистики
-        text = "📊 <b>Статистика бота</b>\n\n"
+        text = "<b>Статистика бота</b>\n\n"
         
-        text += f"📈 <b>Всего анкет:</b> {stats.get('total', 0)}\n\n"
+        text += f"<b>Всего анкет:</b> {stats.get('total', 0)}\n\n"
         
         text += "<b>По отраслям:</b>\n"
         for industry_key, industry_data in INDUSTRIES.items():
@@ -227,7 +225,7 @@ async def list_profiles(message: Message):
         profiles = await get_all_profiles()
         
         if not profiles:
-            await message.answer("📭 Нет созданных анкет.")
+            await message.answer("Нет созданных анкет.")
             return
         
         text = f"📋 <b>Список анкет ({len(profiles)})</b>\n\n"
