@@ -7,6 +7,7 @@ from handlers.common import common_router
 from handlers.admin import admin_router
 from handlers.info import info_router
 from handlers.profile_edit import edit_router
+from handlers.reviews import review_router
 
 from aiogram import Bot, Dispatcher, Router, F
 from aiogram.filters import Command, CommandStart, StateFilter
@@ -112,6 +113,7 @@ async def main():
     dp.include_router(common_router)
     dp.include_router(admin_router)
     dp.include_router(edit_router)
+    dp.include_router(review_router)
     asyncio.create_task(scheduler())
         
 
