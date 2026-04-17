@@ -716,14 +716,15 @@ async def get_reviews(executor_code: str) -> list:
         logger.error(f"Ошибка получения отзывов: {e}")
         return []
 
-async def has_accepted_response(customer_id: int, executor_code: str) -> bool:
+async def has_accepted_response(customer_id: int, executor_profile_code: str) -> bool:
     try:
         async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
             cursor = await db.execute(
                 """SELECT 1 FROM chats 
-                   WHERE customer_id = ? AND executor_profile_code = ? 
+                   WHERE customer_id = ? 
+                   AND executor_profile_code = ? 
                    AND status = 'active'""",
-                (customer_id, executor_code)
+                (customer_id, executor_profile_code)
             )
             return await cursor.fetchone() is not None
     except Exception as e:
