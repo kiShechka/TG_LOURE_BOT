@@ -689,3 +689,43 @@ async def get_reactions(profile_code: str) -> dict:
     except Exception as e:
         logger.error(f"Ошибка получения реакций: {e}")
         return {}
+
+
+async def save_review(executor_code: str, customer_name: str, review_text: str) -> bool:
+    try:
+        async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
+            await db.execute(
+                "INSERT INTO reviews (executor_profile_code, customer_name, review_text, created_at) VALUES (?, ?, ?, ?)",
+                (executor_code, customer_name, review_text, datetime.now().isoformat())
+            )
+            await db.commit()
+            return True
+    except Exception as e:
+        logger.error(f"Ошибка сохранения отзыва: {e}")
+        return False
+
+async def get_reviews(executor_code: str) -> list:
+    try:
+        async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
+            cursor = await db.execute(
+                "SELECT customer_name, review_text, created_at FROM reviews WHERE executor_profile_code = ? ORDER BY created_at DESC",
+                (executor_code,)
+            )
+            return await cursor.fetchall()
+    except Exception as e:
+        logger.error(f"Ошибка получения отзывов: {e}")
+        return []
+
+async def has_accepted_response(customer_id: int, executor_code: str) -> bool:
+    try:
+        async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
+            cursor = await db.execute(
+                """SELECT 1 FROM chats 
+                   WHERE customer_id = ? AND executor_profile_code = ? 
+                   AND status = 'active'""",
+                (customer_id, executor_code)
+            )
+            return await cursor.fetchone() is not None
+    except Exception as e:
+        logger.error(f"Ошибка проверки принятого отклика: {e}")
+        return False
