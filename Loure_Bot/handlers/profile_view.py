@@ -197,6 +197,11 @@ async def show_current_profile(callback: CallbackQuery, state: FSMContext):
                 text=f"Откликнуться({responses_count})",
                 callback_data=f"respond_{current_profile['code']}"
             )])
+        elif target == 'customer':
+            keyboard_buttons.append([InlineKeyboardButton(
+                text="Отзывы",
+                callback_data=f"view_reviews_{current_profile['code']}"
+            )])
         else:
             channel_link = extract_channel_link(current_profile.get('description', ''))
             if channel_link:
@@ -255,8 +260,8 @@ async def stop_viewing(callback: CallbackQuery, state: FSMContext):
         "👌 Просмотр анкет остановлен.\n\n"
         "Что хотите сделать дальше?",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="📝 Создать/редактировать анкету", callback_data='create_profile')],
-            [InlineKeyboardButton(text="🏠 Главное меню", callback_data='main_menu')]
+            [InlineKeyboardButton(text="Создать/редактировать анкету", callback_data='create_profile')],
+            [InlineKeyboardButton(text="Главное меню", callback_data='main_menu')]
         ])
     )
     await state.clear()
