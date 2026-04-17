@@ -11,7 +11,8 @@ from database.crud import (
     get_profile_by_user_id,
     save_review, 
     get_reviews, 
-    has_accepted_response
+    has_accepted_response,
+    update_activity
 )
 
 logger = logging.getLogger(__name__)
