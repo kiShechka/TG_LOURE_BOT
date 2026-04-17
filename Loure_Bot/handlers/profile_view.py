@@ -137,6 +137,7 @@ async def start_viewing(callback: CallbackQuery, state: FSMContext):
 
 @view_router.callback_query(F.data == "next_profile")
 async def show_next_profile(callback: CallbackQuery, state: FSMContext):
+    await update_activity(callback.from_user.id, 'scroll')
     try:
         await callback.answer()
         
@@ -325,6 +326,7 @@ async def cmd_my_ancet(message: Message):
 
 @view_router.callback_query(F.data.startswith("visit_channel_"))
 async def handle_visit_channel(callback: CallbackQuery):
+    await update_activity(callback.from_user.id, 'action')
     try:
         code = callback.data.split("_")[-1]
         profile = await get_profile_by_user_id(callback.from_user.id)
@@ -416,6 +418,7 @@ async def send_profile_to_user(bot: Bot, user_id: int, profile: dict):
 
 @view_router.callback_query(F.data.startswith("respond_"))
 async def handle_response(callback: CallbackQuery, bot: Bot):
+    await update_activity(callback.from_user.id, 'action')
     try:
         code = callback.data.split("_")[-1]
         customer_profile = await get_profile_by_code(code)
@@ -517,6 +520,7 @@ async def accept_response(callback: CallbackQuery, bot: Bot):
 
 @view_router.callback_query(F.data.startswith("react_"))
 async def handle_reaction(callback: CallbackQuery, state: FSMContext):
+    await update_activity(callback.from_user.id, 'reaction')
     try:
         _, profile_code, reaction_type = callback.data.split("_")
         
