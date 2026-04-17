@@ -376,8 +376,6 @@ async def admin_get_chat(message: Message):
 
 @admin_router.message(Command("ban_user"))
 async def admin_ban_user(message: Message):
-    if message.from_user.id != ADMIN_IDS:
-        return
     
     args = message.text.split(maxsplit=1)
     if len(args) < 2:
@@ -398,10 +396,6 @@ async def admin_ban_user(message: Message):
 
 @admin_router.message(Command("broadcast"))
 async def broadcast_message(message: Message, bot: Bot):
-    if message.from_user.id != ADMIN_IDS:
-        await message.answer("❌ У вас нет прав для этой команды")
-        return
-    
     text = message.text.replace("/broadcast", "", 1).strip()
     if not text:
         await message.answer("❌ Укажите текст рассылки после команды /broadcast")
