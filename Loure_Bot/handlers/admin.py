@@ -336,9 +336,6 @@ async def delete_profile_callback(callback: CallbackQuery):
 
 @admin_router.message(Command("get_chat"))
 async def admin_get_chat(message: Message):
-    if message.from_user.id != ADMIN_IDS:
-        return
-    
     args = message.text.split()
     if len(args) < 2:
         await message.answer("❌ Укажите код чата: /get_chat [код]")
@@ -376,7 +373,6 @@ async def admin_get_chat(message: Message):
 
 @admin_router.message(Command("ban_user"))
 async def admin_ban_user(message: Message):
-    
     args = message.text.split(maxsplit=1)
     if len(args) < 2:
         await message.answer("❌ Укажите user_id: /ban_user [user_id] [причина]")
