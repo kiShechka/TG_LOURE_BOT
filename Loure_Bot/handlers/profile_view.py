@@ -3,7 +3,7 @@ import logging
 import re
 import aiosqlite
 from typing import List, Dict, Optional
-from datatime import datataime
+from datetime import datetime
 from aiogram import Router, F, Bot
 from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InputMediaVideo, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.fsm.context import FSMContext
