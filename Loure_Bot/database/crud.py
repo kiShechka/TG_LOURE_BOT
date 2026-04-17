@@ -745,7 +745,7 @@ async def update_activity(user_id: int, action_type: str) -> None:
     scores = {
         'scroll': 0.5,
         'reaction': 1.0,
-        'action': 2.0   # переход на канал, отклик, отзыв
+        'action': 2.0  
     }
     
     score = scores.get(action_type, 0)
