@@ -730,3 +730,75 @@ async def has_accepted_response(customer_id: int, executor_profile_code: str) ->
     except Exception as e:
         logger.error(f"Ошибка проверки принятого отклика: {e}")
         return False
+
+
+from datetime import datetime, timedelta
+
+async def get_current_week_start() -> str:
+    today = datetime.now().date()
+    week_start = today - timedelta(days=today.weekday())
+    return week_start.isoformat()
+
+async def update_activity(user_id: int, action_type: str) -> None:
+    week_start = await get_current_week_start()
+    
+    scores = {
+        'scroll': 0.5,
+        'reaction': 1.0,
+        'action': 2.0   # переход на канал, отклик, отзыв
+    }
+    
+    score = scores.get(action_type, 0)
+    
+    async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
+        # Проверяем, есть ли запись за эту неделю
+        cursor = await db.execute(
+            "SELECT 1 FROM user_activity WHERE user_id = ? AND week_start = ?",
+            (user_id, week_start)
+        )
+        exists = await cursor.fetchone()
+        
+        if exists:
+            if action_type == 'scroll':
+                await db.execute(
+                    "UPDATE user_activity SET scrolls = scrolls + 1, total_score = total_score + ? WHERE user_id = ? AND week_start = ?",
+                    (score, user_id, week_start)
+                )
+            elif action_type == 'reaction':
+                await db.execute(
+                    "UPDATE user_activity SET reactions = reactions + 1, total_score = total_score + ? WHERE user_id = ? AND week_start = ?",
+                    (score, user_id, week_start)
+                )
+            else:
+                await db.execute(
+                    "UPDATE user_activity SET actions = actions + 1, total_score = total_score + ? WHERE user_id = ? AND week_start = ?",
+                    (score, user_id, week_start)
+                )
+        else:
+            scrolls = 1 if action_type == 'scroll' else 0
+            reactions = 1 if action_type == 'reaction' else 0
+            actions = 1 if action_type == 'action' else 0
+            await db.execute(
+                "INSERT INTO user_activity (user_id, week_start, scrolls, reactions, actions, total_score) VALUES (?, ?, ?, ?, ?, ?)",
+                (user_id, week_start, scrolls, reactions, actions, score)
+            )
+        await db.commit()
+
+async def get_user_activity_score(user_id: int) -> float:
+    week_start = await get_current_week_start()
+    async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
+        cursor = await db.execute(
+            "SELECT total_score FROM user_activity WHERE user_id = ? AND week_start = ?",
+            (user_id, week_start)
+        )
+        row = await cursor.fetchone()
+        return row[0] if row else 0.0
+
+async def get_all_activity_scores() -> dict:
+    week_start = await get_current_week_start()
+    async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
+        cursor = await db.execute(
+            "SELECT user_id, total_score FROM user_activity WHERE week_start = ?",
+            (week_start,)
+        )
+        return {row[0]: row[1] for row in await cursor.fetchall()}
