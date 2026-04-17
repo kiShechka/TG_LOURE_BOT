@@ -197,7 +197,7 @@ async def show_current_profile(callback: CallbackQuery, state: FSMContext):
                 text=f"Откликнуться({responses_count})",
                 callback_data=f"respond_{current_profile['code']}"
             )])
-        elif target == 'customer':
+        elif target == 'client':
             keyboard_buttons.append([InlineKeyboardButton(
                 text="Отзывы",
                 callback_data=f"view_reviews_{current_profile['code']}"
