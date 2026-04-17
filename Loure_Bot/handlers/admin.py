@@ -336,7 +336,7 @@ async def delete_profile_callback(callback: CallbackQuery):
 
 @admin_router.message(Command("get_chat"))
 async def admin_get_chat(message: Message):
-    if message.from_user.id != ADMIN_CHAT_ID:
+    if message.from_user.id != ADMIN_IDS:
         return
     
     args = message.text.split()
@@ -353,7 +353,7 @@ async def admin_get_chat(message: Message):
         return
     
     if not messages:
-        await message.answer(f"📭 Чат {chat_code} пуст")
+        await message.answer(f"Чат {chat_code} пуст")
         return
     
     text = f"<b>Переписка чата {chat_code}</b>\n"
@@ -376,7 +376,7 @@ async def admin_get_chat(message: Message):
 
 @admin_router.message(Command("ban_user"))
 async def admin_ban_user(message: Message):
-    if message.from_user.id != ADMIN_CHAT_ID:
+    if message.from_user.id != ADMIN_IDS:
         return
     
     args = message.text.split(maxsplit=1)
@@ -398,7 +398,7 @@ async def admin_ban_user(message: Message):
 
 @admin_router.message(Command("broadcast"))
 async def broadcast_message(message: Message, bot: Bot):
-    if message.from_user.id != ADMIN_CHAT_ID:
+    if message.from_user.id != ADMIN_IDS:
         await message.answer("❌ У вас нет прав для этой команды")
         return
     
