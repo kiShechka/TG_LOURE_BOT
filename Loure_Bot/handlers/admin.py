@@ -3,7 +3,7 @@ import logging
 import asyncio
 import aiosqlite
 from typing import Optional
-from aiogram import Router, F
+from aiogram import Router, F,Bot
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.filters import Command
 from aiogram.enums import ParseMode
