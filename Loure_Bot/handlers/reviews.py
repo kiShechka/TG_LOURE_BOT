@@ -73,6 +73,7 @@ async def write_review_start(callback: CallbackQuery, state: FSMContext):
 
 @review_router.message(ReviewStates.waiting_for_review)
 async def save_review_text(message: Message, state: FSMContext):
+    await update_activity(callback.from_user.id, 'action')
     try:
         data = await state.get_data()
         executor_code = data.get('executor_code')
