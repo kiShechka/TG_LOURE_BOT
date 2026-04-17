@@ -1,12 +1,14 @@
 
 import logging
+import asyncio
+import aiosqlite
 from typing import Optional
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.filters import Command
 from aiogram.enums import ParseMode
 
-from config import ADMIN_CHAT_ID, ADMIN_IDS, INDUSTRIES, TARGETS
+from config import ADMIN_CHAT_ID, ADMIN_IDS, INDUSTRIES, TARGETS, DB_PATH
 from database.crud import (
     delete_profile_by_code, 
     set_admin_chat, 
@@ -394,3 +396,42 @@ async def admin_ban_user(message: Message):
     
     await ban_user(user_id, reason)
     await message.answer(f"✅ Пользователь {user_id} заблокирован\nПричина: {reason}")
+
+
+@admin_router.message(Command("broadcast"))
+async def broadcast_message(message: Message, bot: Bot):
+    if message.from_user.id != ADMIN_CHAT_ID:
+        await message.answer("❌ У вас нет прав для этой команды")
+        return
+    
+    text = message.text.replace("/broadcast", "", 1).strip()
+    if not text:
+        await message.answer("❌ Укажите текст рассылки после команды /broadcast")
+        return
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute("SELECT DISTINCT user_id FROM profiles")
+        users = await cursor.fetchall()
+    
+    status_msg = await message.answer(f"Начинаю рассылку для {len(users)} пользователей...")
+    
+    success = 0
+    fail = 0
+    
+    for (user_id,) in users:
+        try:
+            await bot.send_message(
+                chat_id=user_id,
+                text=text,
+                parse_mode="HTML",
+                disable_web_page_preview=True
+            )
+            success += 1
+            await asyncio.sleep(0.05)
+        except Exception:
+            fail += 1
+    
+    await status_msg.edit_text(
+        f"✅ Рассылка завершена!\n"
+        f"Успешно: {success}\n"
+        f"❌ Ошибок: {fail}"
+    )
