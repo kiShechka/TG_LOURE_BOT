@@ -474,9 +474,10 @@ async def accept_response(callback: CallbackQuery, bot: Bot):
             async with aiosqlite.connect(DB_PATH) as db:
                 await db.execute(
                     """INSERT INTO chats 
-                       (chat_code, customer_profile_code, executor_profile_code, status, created_at) 
-                       VALUES (?, ?, ?, 'active', ?)""",
-                    (chat_code, customer_code, executor_code, datetime.now().isoformat())
+                       (chat_code, customer_id, executor_id, customer_profile_code, executor_profile_code, status, created_at) 
+                       VALUES (?, ?, ?, ?, ?, 'active', ?)""",
+                    (chat_code, customer_profile['user_id'], executor_profile['user_id'], 
+                     customer_code, executor_code, datetime.now().isoformat())
                 )
                 await db.commit()
             
