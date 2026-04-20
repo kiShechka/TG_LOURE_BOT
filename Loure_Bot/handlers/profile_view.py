@@ -265,47 +265,47 @@ async def stop_viewing(callback: CallbackQuery, state: FSMContext):
 @view_router.message(F.text == "📋 Моя анкета")
 @view_router.callback_query(F.data == "my_profile")
 async def view_my_profile(message_or_callback: Message | CallbackQuery):
-    try:
-        user_id = None
-        message = None
+    user_id = message.from_user.id
+    profiles = await get_user_profiles(user_id)
+    
+    if not profiles:
+        await message.answer(
+            "У вас нет анкет.\n\n Создайте первую анкету командой /create"
+        )
+        return
+    
+    text = "<b>Ваши анкеты:</b>\n\n"
+    buttons = []
+    
+    for p in profiles:
+        active_mark = "✅ " if p.get('is_active') else "○ "
+        text += f"{active_mark}<b>{p['name']}</b> ({INDUSTRIES[p['industry']]['name']})\n"
+        text += f"└ Код: <code>{p['code']}</code>\n\n"
         
-        if isinstance(message_or_callback, CallbackQuery):
-            user_id = message_or_callback.from_user.id
-            message = message_or_callback.message
-            await message_or_callback.answer()
-        else:
-            user_id = message_or_callback.from_user.id
-            message = message_or_callback
-        
-        profile = await get_profile_by_user_id(user_id)
-        
-        if not profile:
-            text = "❌ У вас еще нет созданной анкеты. Используйте /create чтобы создать анкету."
-            
-            if isinstance(message_or_callback, CallbackQuery):
-                await message.edit_text(text)
-            else:
-                await message.answer(text)
-            return
-        await send_simple_profile(message, profile)
+        action_buttons = []
+        if not p.get('is_active'):
+            action_buttons.append(InlineKeyboardButton(text="⭐ Сделать активной", callback_data=f"set_active_{p['code']}"))
+        action_buttons.append(InlineKeyboardButton(text="Редактировать", callback_data=f"edit_this_{p['code']}"))
+        action_buttons.append(InlineKeyboardButton(text="Удалить", callback_data=f"delete_this_{p['code']}"))
+        buttons.append(action_buttons)
+    
+    if len(profiles) < 3:
+        buttons.append([InlineKeyboardButton(text="Создать анкету", callback_data="create_profile")])
+    
+    await message.answer(text, parse_mode=ParseMode.HTML, reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
 
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="✏️ Редактировать", callback_data='edit_profile')],
-            [InlineKeyboardButton(text="🔍 Смотреть анкеты", callback_data='view_profiles')]
-        ])
-        
-        if isinstance(message_or_callback, CallbackQuery):
-            await message.answer("Что вы хотите сделать с анкетой?", reply_markup=keyboard)
-        else:
-            await message.answer("Что вы хотите сделать с анкетой?", reply_markup=keyboard)
-        
-    except Exception as e:
-        logger.error(f"Ошибка в view_my_profile: {e}", exc_info=True)
-        
-        if isinstance(message_or_callback, CallbackQuery):
-            await message_or_callback.answer(f"❌ Ошибка: {str(e)}", show_alert=True)
-        else:
-            await message_or_callback.answer(f"❌ Ошибка: {str(e)}")
+@view_router.callback_query(F.data.startswith("set_active_"))
+async def set_active_callback(callback: CallbackQuery):
+    profile_code = callback.data.split("_")[-1]
+    user_id = callback.from_user.id
+    profile = await get_profile_by_code(profile_code)
+    if not profile or profile['user_id'] != user_id:
+        await callback.answer("❌ Это не ваша анкета", show_alert=True)
+        return
+    await set_active_profile(user_id, profile_code)
+    await callback.answer("✅ Анкета теперь активная!")
+    await view_my_profile(callback.message)
+
 
 @view_router.callback_query(F.data == "main_menu")
 async def return_to_main_menu(callback: CallbackQuery, state: FSMContext):
