@@ -468,8 +468,9 @@ async def send_profile_to_user(bot: Bot, user_id: int, profile: dict):
                         await bot.send_video(chat_id=user_id, video=media_item.media, caption=media_item.caption, parse_mode=media_item.parse_mode)
                 else:
                     await bot.send_media_group(chat_id=user_id, media=media_group)
-                return
-        await bot.send_message(chat_id=user_id, text=caption, parse_mode=ParseMode.HTML)
+                media_sent = True
+        if not media_sent:
+            await bot.send_message(chat_id=user_id, text=caption, parse_mode=ParseMode.HTML)
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [
                 InlineKeyboardButton(text="✅ Принять", callback_data=f"accept_response_{profile['code']}"),
