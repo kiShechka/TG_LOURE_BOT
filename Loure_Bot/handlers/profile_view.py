@@ -104,7 +104,7 @@ async def start_viewing(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     await start_viewing_logic(callback.message, callback.from_user.id, state)
 
-@view_router.message(Command("view_profiles"))
+@view_router.message(Command("view_profile"))
 async def cmd_view_profiles(message: Message, state: FSMContext):
     await start_viewing_logic(message, message.from_user.id, state)
 async def start_viewing_logic(msg: Message, user_id: int, state: FSMContext):
