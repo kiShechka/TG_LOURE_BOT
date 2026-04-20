@@ -42,6 +42,7 @@ def extract_channel_link(text: str) -> str | None:
 async def send_simple_profile(message: Message, profile: dict) -> bool:
     try:
         media = profile.get('media', [])
+        media_sent = False
         
         if media:
             media_group = []
