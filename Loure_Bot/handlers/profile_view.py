@@ -424,8 +424,15 @@ async def handle_visit_channel(callback: CallbackQuery):
 
 async def send_profile_to_user(bot: Bot, user_id: int, profile: dict):
     try:
-        media = profile.get('media', [])
-        
+        media_raw = profile.get('media', [])
+        if isinstance(media_raw, str):
+            import json
+            try:
+                media = json.loads(media_raw)
+            except:
+                media = []
+        else:
+            media = media_raw
         caption = (
             f"👤 <b>{profile['name']}</b>\n"
             f"Отрасль: {INDUSTRIES.get(profile['industry'], {}).get('name', profile['industry'])}\n\n"
@@ -437,23 +444,32 @@ async def send_profile_to_user(bot: Bot, user_id: int, profile: dict):
         
         if media:
             media_group = []
-            for i, (media_type, file_id) in enumerate(media):
-                if media_type == 'photo':
-                    if i == 0:
-                        media_group.append(InputMediaPhoto(media=file_id, caption=caption, parse_mode=ParseMode.HTML))
-                    else:
-                        media_group.append(InputMediaPhoto(media=file_id))
-                elif media_type == 'video':
-                    if i == 0:
-                        media_group.append(InputMediaVideo(media=file_id, caption=caption, parse_mode=ParseMode.HTML))
-                    else:
-                        media_group.append(InputMediaVideo(media=file_id))
+            for i, item in enumerate(media):
+                if isinstance(item, (list, tuple)) and len(item) >= 2:
+                    media_type, file_id = item[0], item[1]
+                    
+                    if media_type == 'photo':
+                        if i == 0:
+                            media_group.append(InputMediaPhoto(media=file_id, caption=caption, parse_mode=ParseMode.HTML))
+                        else:
+                            media_group.append(InputMediaPhoto(media=file_id))
+                    elif media_type == 'video':
+                        if i == 0:
+                            media_group.append(InputMediaVideo(media=file_id, caption=caption, parse_mode=ParseMode.HTML))
+                        else:
+                            media_group.append(InputMediaVideo(media=file_id))
             
             if media_group:
-                await bot.send_media_group(chat_id=user_id, media=media_group)
-        else:
-            await bot.send_message(chat_id=user_id, text=caption, parse_mode=ParseMode.HTML)
-        
+                if len(media_group) == 1:
+                    media_item = media_group[0]
+                    if isinstance(media_item, InputMediaPhoto):
+                        await bot.send_photo(chat_id=user_id, photo=media_item.media, caption=media_item.caption, parse_mode=media_item.parse_mode)
+                    elif isinstance(media_item, InputMediaVideo):
+                        await bot.send_video(chat_id=user_id, video=media_item.media, caption=media_item.caption, parse_mode=media_item.parse_mode)
+                else:
+                    await bot.send_media_group(chat_id=user_id, media=media_group)
+                return
+        await bot.send_message(chat_id=user_id, text=caption, parse_mode=ParseMode.HTML)
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [
                 InlineKeyboardButton(text="✅ Принять", callback_data=f"accept_response_{profile['code']}"),
