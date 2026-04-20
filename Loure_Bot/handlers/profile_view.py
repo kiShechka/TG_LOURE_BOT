@@ -111,15 +111,6 @@ async def cmd_view_profiles(message: Message, state: FSMContext):
 async def start_viewing_logic(msg: Message, user_id: int, state: FSMContext):
     try:
         user_profile = await get_active_profile(user_id)
-        if not user_profile:
-            await msg.edit_text(
-                "⛔️ У вас нет анкеты!\n\n"
-                "Сначала создайте анкету.",
-                reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                    [InlineKeyboardButton(text="📝 Создать анкету", callback_data='create_profile')]
-                ])
-            )
-            return
         recommended_profiles = await apply_filters(user_id)
         if not recommended_profiles:
             await msg.edit_text(
