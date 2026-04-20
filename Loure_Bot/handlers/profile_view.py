@@ -277,7 +277,7 @@ async def view_my_profile(message_or_callback: Message | CallbackQuery):
     await message_or_callback.answer("<b>Ваши анкеты:</b>\n", parse_mode=ParseMode.HTML)
     
     for profile in profiles:
-        await show_current_profile(message_or_callback, profile)
+        await send_simple_profile(message_or_callback, profile)
         
         buttons = []
         if profile.get('is_active'):
