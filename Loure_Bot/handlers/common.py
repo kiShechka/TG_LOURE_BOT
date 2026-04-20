@@ -201,11 +201,12 @@ async def chat_history(message: Message):
         await message.answer("❌ Укажите код анкеты: /chat_history aB3dE5fG")
         return
     
-    other_code = args[1]
+    chat_code = args[1]
     chat = await get_chat_by_codes(profile['code'], other_code)
     if not chat:
-        await message.answer(f"❌ Чат с анкетой {other_code} не найден")
+        await message.answer(f"❌ Чат с анкетой {chat_code} не найден")
         return
+        
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute(
@@ -250,10 +251,10 @@ async def close_chat_command(message: Message):
     
     args = message.text.split()
     if len(args) < 2:
-        await message.answer("❌ Укажите код анкеты: /close_chat aB3dE5fG")
+        await message.answer("❌ Укажите код чата: /close_chat aB3dE5fG")
         return
     
-    other_code = args[1]
+    chat_code = args[1]
     
     chat = await get_chat_by_codes(profile['code'], other_code)
     if not chat:
