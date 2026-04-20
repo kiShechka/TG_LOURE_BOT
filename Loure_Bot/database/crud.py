@@ -812,3 +812,54 @@ async def can_create_profile(user_id: int) -> bool:
         )
         count = (await cursor.fetchone())[0]
         return count < 3
+
+async def get_user_profiles(user_id: int) -> list:
+    try:
+        async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                "SELECT * FROM profiles WHERE user_id = ? ORDER BY is_active DESC, created_at DESC",
+                (user_id,)
+            )
+            return [dict(row) for row in await cursor.fetchall()]
+    except Exception as e:
+        logger.error(f"Ошибка получения анкет пользователя: {e}")
+        return []
+
+async def get_active_profile(user_id: int) -> dict:
+    try:
+        async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                "SELECT * FROM profiles WHERE user_id = ? AND is_active = 1",
+                (user_id,)
+            )
+            row = await cursor.fetchone()
+            if row:
+                return dict(row)
+            cursor = await db.execute(
+                "SELECT * FROM profiles WHERE user_id = ? ORDER BY id LIMIT 1",
+                (user_id,)
+            )
+            row = await cursor.fetchone()
+            return dict(row) if row else None
+    except Exception as e:
+        logger.error(f"Ошибка получения активной анкеты: {e}")
+        return None
+
+async def set_active_profile(user_id: int, profile_code: str) -> bool:
+    try:
+        async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
+            await db.execute(
+                "UPDATE profiles SET is_active = 0 WHERE user_id = ?",
+                (user_id,)
+            )
+            await db.execute(
+                "UPDATE profiles SET is_active = 1 WHERE user_id = ? AND code = ?",
+                (user_id, profile_code)
+            )
+            await db.commit()
+            return True
+    except Exception as e:
+        logger.error(f"Ошибка установки активной анкеты: {e}")
+        return False
