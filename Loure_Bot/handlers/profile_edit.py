@@ -258,6 +258,17 @@ async def finish_edit_profile(message: Message, state: FSMContext):
     try:
         data = await state.get_data()
         current = data.get('current', {})
+
+        editrd_media= data.get('edited_media', current.get('media',[]))
+        if isinstance(edited_media,str):
+            import json
+            try: 
+                edited_media = json.loads(edited_media)
+            except:
+                edited_media = []
+        elif not isinstance(edited_media, list):
+            edited_media = []
+
         
         edited_profile = {
             'user_id': current['user_id'],
