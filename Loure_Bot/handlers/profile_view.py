@@ -265,33 +265,43 @@ async def stop_viewing(callback: CallbackQuery, state: FSMContext):
 @view_router.message(F.text == "📋 Моя анкета")
 @view_router.callback_query(F.data == "my_profile")
 async def view_my_profile(message_or_callback: Message | CallbackQuery):
-    user_id = message_or_callback.from_user.id
-    profiles = await get_user_profiles(user_id)
-    
-    if not profiles:
-        await message_or_callback.answer(
-            "У вас нет анкет.\n\nСоздайте первую анкету командой /create"
-        )
-        return
-    
-    await message_or_callback.answer("<b>Ваши анкеты:</b>\n", parse_mode=ParseMode.HTML)
-    
-    for profile in profiles:
-        await send_simple_profile(message_or_callback, profile)
-        
-        buttons = []
-        if profile.get('is_active'):
-            buttons.append(InlineKeyboardButton(text="✅ Активна", callback_data="noop"))
+    try:
+        if isinstance(message_or_callback, CallbackQuery):
+            user_id = message_or_callback.from_user.id
+            msg = message_or_callback.message
+            await message_or_callback.answer()
         else:
-            buttons.append(InlineKeyboardButton(text="⭐ Сделать активной", callback_data=f"set_active_{profile['code']}"))
+            user_id = message_or_callback.from_user.id
+            msg = message_or_callback
+        profiles = await get_user_profiles(user_id)
         
-        buttons.append(InlineKeyboardButton(text="Редактировать", callback_data=f"edit_this_{profile['code']}"))
-        buttons.append(InlineKeyboardButton(text="Удалить", callback_data=f"delete_this_{profile['code']}"))
+        if not profiles:
+            await msg.answer(
+                "У вас нет анкет.\n\n➕ Создайте первую анкету командой /create"
+            )
+            return
         
-        await message_or_callback.answer(
-            "_____________________",
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=[buttons])
-        )
+        await msg.answer("<b>Ваши анкеты:</b>\n", parse_mode=ParseMode.HTML)
+        
+        for profile in profiles:
+            await send_simple_profile(msg, profile)
+            
+            buttons = []
+            if profile.get('is_active'):
+                buttons.append(InlineKeyboardButton(text="✅ Активна", callback_data="noop"))
+            else:
+                buttons.append(InlineKeyboardButton(text="⭐ Сделать активной", callback_data=f"set_active_{profile['code']}"))
+            
+            buttons.append(InlineKeyboardButton(text="Редактировать", callback_data=f"edit_this_{profile['code']}"))
+            buttons.append(InlineKeyboardButton(text="Удалить", callback_data=f"delete_this_{profile['code']}"))
+            
+            await msg.answer(
+                "_________________",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[buttons])
+            )
+            
+    except Exception as e:
+        logger.error(f"Ошибка в view_my_profile: {e}")
 
 @view_router.callback_query(F.data.startswith("set_active_"))
 async def set_active_callback(callback: CallbackQuery):
