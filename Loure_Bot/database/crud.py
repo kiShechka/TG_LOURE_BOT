@@ -445,12 +445,12 @@ async def get_all_profile_codes() -> list:
         return []
 
 
-async def save_response(profile_code: str, responder_id: int, responder_name: str) -> bool:
+async def save_response(profile_code: str, responder_id: int, responder_name: str, responder_code: str) -> bool:
     try:
         async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
             await db.execute(
-                "INSERT OR REPLACE INTO responses (profile_code, responder_id, responder_name, created_at) VALUES (?, ?, ?, ?)",
-                (profile_code, responder_id, responder_name, datetime.now().isoformat())
+                "INSERT OR REPLACE INTO responses (profile_code, responder_id, responder_name, responder_code, created_at) VALUES (?, ?, ?, ?, ?)",
+                (profile_code, responder_id, responder_name, responder_code, datetime.now().isoformat())
             )
             await db.commit()
             return True
@@ -458,12 +458,12 @@ async def save_response(profile_code: str, responder_id: int, responder_name: st
         logger.error(f"Ошибка сохранения отклика: {e}")
         return False
 
-async def check_response(profile_code: str, responder_id: int) -> bool:
+async def check_response(profile_code: str, responder_code: str) -> bool:
     try:
         async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
             cursor = await db.execute(
-                "SELECT 1 FROM responses WHERE profile_code = ? AND responder_id = ?",
-                (profile_code, responder_id)
+                "SELECT 1 FROM responses WHERE profile_code = ? AND responder_code = ?",
+                (profile_code, responder_code)
             )
             return await cursor.fetchone() is not None
     except Exception as e:
