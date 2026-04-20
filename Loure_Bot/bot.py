@@ -31,6 +31,18 @@ async def cmd_start(message: Message):
     from handlers.common import start
     await start(message)
 
+@router.message(Command("create"))
+async def cmd_create(message: Message, state: FSMContext):
+    from handlers.profile_creanion import start_create_profile
+    class FakeCallback:
+        def __init__(self, msg):
+            self.message = msg
+            self.from_user = msg.from_user
+        async def answer(self):
+            pass
+    fake_callback = FakeCallback(message)
+    await start_create_profile(fake_callback, state)
+
 @router.message(Command("cancel"))
 async def cmd_cancel(message: Message, state: FSMContext):
     from handlers.common import cancel
