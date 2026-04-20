@@ -309,13 +309,22 @@ async def view_my_profile(message_or_callback: Message | CallbackQuery):
 async def set_active_callback(callback: CallbackQuery):
     profile_code = callback.data.split("_")[-1]
     user_id = callback.from_user.id
+    
+    from database.crud import get_profile_by_code, set_active_profile, get_user_profiles
+    
     profile = await get_profile_by_code(profile_code)
     if not profile or profile['user_id'] != user_id:
         await callback.answer("❌ Это не ваша анкета", show_alert=True)
         return
+    
     await set_active_profile(user_id, profile_code)
     await callback.answer("✅ Анкета теперь активная!")
-    await view_my_profile(callback.message)
+    await view_my_profile(callback.message) 
+    
+    await callback.message.delete()
+    fake_message = await callback.message.answer("Обновляем список анкет...")
+    fake_message.from_user = callback.from_user
+    await view_my_profile(fake_message)
 
 
 @view_router.callback_query(F.data == "main_menu")
