@@ -540,45 +540,46 @@ async def accept_response(callback: CallbackQuery, bot: Bot):
             return
         
         customer_code = customer_profile['code']
-        existing_chat = await get_active_chat_by_users(customer_profile['user_id'], executor_profile['user_id'])
+        chat_code = f"{customer_code}_{executor_code}"
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                "SELECT * FROM chats WHERE chat_code = ?",
+                (chat_code,)
+            )
+            existing_chat = await cursor.fetchone()
         
         if existing_chat:
-            chat_code = existing_chat['chat_code']
             await callback.message.edit_text(
                 f"✅ Чат уже существует!\n"
-                f"Код чата: <code>{chat_code}</code>"
-                f"• Отправляйте сообщения:\n<code>/send {other_code} Ваше сообщение</code>\n\n"
+                f"Код чата: <code>{chat_code}</code>\n\n"
+                f"• Отправляйте сообщения:\n<code>/send {chat_code} Ваше сообщение</code>\n\n"
                 f"• Все чаты: /my_chats\n"
-                f"• История: /chat_history {other_code}\n"
-                f"• Закрыть чат: /close_chat {other_code}\n",
+                f"• История: /chat_history {chat_code}\n"
+                f"• Закрыть чат: /close_chat {chat_code}\n",
                 parse_mode=ParseMode.HTML
             )
         else:
-            chat_code = f"{customer_code}_{executor_code}"
             async with aiosqlite.connect(DB_PATH) as db:
                 await db.execute(
                     """INSERT INTO chats 
-                       (chat_code, customer_id, executor_id, customer_profile_code, executor_profile_code, status, created_at) 
-                       VALUES (?, ?, ?, ?, ?, 'active', ?)""",
-                    (chat_code, customer_profile['user_id'], executor_profile['user_id'], 
-                     customer_code, executor_code, datetime.now().isoformat())
+                       (chat_code, customer_profile_code, executor_profile_code, status, created_at) 
+                       VALUES (?, ?, ?, 'active', ?)""",
+                    (chat_code, customer_code, executor_code, datetime.now().isoformat())
                 )
                 await db.commit()
-            
             for user_id, role in [(customer_profile['user_id'], 'Заказчик'), (executor_profile['user_id'], 'Исполнитель')]:
-                other_code = executor_code if role == 'Заказчик' else customer_code
-                
                 await bot.send_message(
                     chat_id=user_id,
                     text=f"🆕 <b>Создан анонимный чат!</b>\n\n"
                          f"Ваша роль: {role}\n"
                          f"Код чата: <code>{chat_code}</code>\n\n"
                          f"<b>Как это работает:</b>\n"
-                         f"• Отправляйте сообщения:\n<code>/send {other_code} Ваше сообщение</code>\n\n"
+                         f"• Отправляйте сообщения:\n<code>/send {chat_code} Ваше сообщение</code>\n\n"
                          f"• Все чаты: /my_chats\n"
-                         f"• История: /chat_history {other_code}\n"
-                         f"• Закрыть чат: /close_chat {other_code}\n"
-                         f"• Пожаловаться: /complaint {other_code} причина",
+                         f"• История: /chat_history {chat_code}\n"
+                         f"• Закрыть чат: /close_chat {chat_code}\n"
+                         f"• Пожаловаться: /complaint {chat_code} причина",
                     parse_mode=ParseMode.HTML
                 )
             
@@ -593,8 +594,9 @@ async def accept_response(callback: CallbackQuery, bot: Bot):
     except Exception as e:
         logger.error(f"Ошибка принятия отклика: {e}")
         await callback.answer("❌ Ошибка", show_alert=True)
-
 @view_router.callback_query(F.data.startswith("react_"))
+
+
 async def handle_reaction(callback: CallbackQuery, state: FSMContext):
     await update_activity(callback.from_user.id, 'reaction')
     try:
