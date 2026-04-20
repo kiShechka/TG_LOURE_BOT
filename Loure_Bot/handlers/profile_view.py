@@ -319,8 +319,8 @@ async def set_active_callback(callback: CallbackQuery):
     
     await set_active_profile(user_id, profile_code)
     await callback.answer("✅ Анкета теперь активная!")
+    await callback.message.delete()
     await view_my_profile(callback.message)
-
 
 @view_router.callback_query(F.data == "main_menu")
 async def return_to_main_menu(callback: CallbackQuery, state: FSMContext):
