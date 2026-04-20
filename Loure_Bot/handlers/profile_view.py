@@ -265,6 +265,7 @@ async def stop_viewing(callback: CallbackQuery, state: FSMContext):
 @view_router.message(F.text == "📋 Моя анкета")
 @view_router.callback_query(F.data == "my_profile")
 async def view_my_profile(message_or_callback: Message | CallbackQuery):
+    print(f"DEBUG: view_my_profile вызвана, тип: {type(message_or_callback)}")
     try:
         if isinstance(message_or_callback, CallbackQuery):
             user_id = message_or_callback.from_user.id
