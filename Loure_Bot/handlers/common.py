@@ -80,45 +80,43 @@ async def cancel(message_or_callback: Message | CallbackQuery, state: FSMContext
 
 @common_router.message(Command("delete"))
 async def delete_profile_user(message: Message):
-    fprofile_code = message.data.split("_")[-1]
-    user_id = message.from_user.id
-    profile = await get_profile_by_code(profile_code)
-    if not profile or profile['user_id'] != user_id:
-        await message.answer("❌ Это не ваша анкета", show_alert=True)
+    from database.crud import get_active_profile
+    
+    profile = await get_active_profile(message.from_user.id)
+    
+    if not profile:
+        await message.answer("❌ У вас нет активной анкеты для удаления.")
         return
-    was_active = profile.get('is_active', False)
-    await delete_profile_by_code_and_user(profile_code, user_id)
-    if was_active:
-        profiles = await get_user_profiles(user_id)
-        if profiles:
-            await set_active_profile(user_id, profiles[0]['code'])
-    await message.answer("Анкета удалена!")
-    await cmd_my_profiles(callback.message)
-
+    
+    await message.answer(
+        f"⚠️ Вы уверены, что хотите удалить свою АКТИВНУЮ анкету?\n\n"
+        f"Имя: {profile['name']}\n"
+        f"Отрасль: {profile['industry']}",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [
+                InlineKeyboardButton(text="✅ Да, удалить", callback_data=f"user_delete_confirm_{profile['code']}"),
+                InlineKeyboardButton(text="❌ Нет, отмена", callback_data="user_delete_cancel")
+            ]
+        ])
+    )
 @common_router.callback_query(F.data.startswith("user_delete_confirm_"))
 async def confirm_user_delete(callback: CallbackQuery, bot: Bot):
     code = callback.data.split("_")[-1]
     
-    from database.crud import delete_profile_by_code, get_profile_by_user_id
+    from database.crud import delete_profile_by_code, get_profile_by_code
     
-    profile = await get_profile_by_user_id(callback.from_user.id)
-    if not profile or profile['code'] != code:
+    profile = await get_profile_by_code(code)
+    if not profile or profile['user_id'] != callback.from_user.id:
         await callback.answer("❌ Вы не можете удалить эту анкету!", show_alert=True)
         return
-    
     success = await delete_profile_by_code(code)
-    
     if success:
-        await callback.message.edit_text("✅ Ваша анкета успешно удалена!")
-        from config import ADMIN_CHAT_ID
-        if ADMIN_CHAT_ID:
-            await bot.send_message(
-                ADMIN_CHAT_ID,
-                f"👤 Пользователь @{callback.from_user.username or callback.from_user.id} "
-                f"удалил свою анкету:\n"
-                f"Код: {code}\n"
-                f"Имя: {profile['name']}"
-            )
+        await callback.message.edit_text("✅ Анкета успешно удалена!")
+        from database.crud import get_user_profiles, set_active_profile
+        remaining = await get_user_profiles(callback.from_user.id)
+        if remaining:
+            await set_active_profile(callback.from_user.id, remaining[0]['code'])
+            await callback.message.answer(f"📌 Активной теперь стала анкета: {remaining[0]['name']}")
     else:
         await callback.message.edit_text("❌ Не удалось удалить анкету.")
     
