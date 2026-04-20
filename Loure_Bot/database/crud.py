@@ -802,3 +802,13 @@ async def get_all_activity_scores() -> dict:
             (week_start,)
         )
         return {row[0]: row[1] for row in await cursor.fetchall()}
+
+
+async def can_create_profile(user_id: int) -> bool:
+    async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
+        cursor = await db.execute(
+            "SELECT COUNT(*) FROM profiles WHERE user_id = ?",
+            (user_id,)
+        )
+        count = (await cursor.fetchone())[0]
+        return count < 3
