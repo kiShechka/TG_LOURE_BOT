@@ -10,7 +10,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.enums import ParseMode
 
 from config import INDUSTRIES, TARGETS, ADMIN_CHAT_ID, DB_PATH
-from database.crud import get_profile_by_user_id, get_recommended_profiles, get_visit_count,increment_daily_visit, increment_visit_count,save_response, check_response, get_responses_count, get_active_chat_by_users,get_user_active_chat,save_message, close_chat, is_user_banned,get_profile_by_code,get_reactions,save_reaction,update_activity,get_user_profiles,set_active_profiles
+from database.crud import get_profile_by_user_id, get_recommended_profiles, get_visit_count,increment_daily_visit, increment_visit_count,save_response, check_response, get_responses_count, get_active_chat_by_users,get_user_active_chat,save_message, close_chat, is_user_banned,get_profile_by_code,get_reactions,save_reaction,update_activity,get_user_profiles,set_active_profile
 from utils.filters import apply_filters
 
 logger = logging.getLogger(__name__)
@@ -44,8 +44,6 @@ import json
 async def send_simple_profile(message: Message, profile: dict) -> bool:
     try:
         media_raw = profile.get('media', [])
-        
-        # Если media пришла как строка — парсим JSON
         if isinstance(media_raw, str):
             try:
                 media = json.loads(media_raw)
@@ -87,8 +85,6 @@ async def send_simple_profile(message: Message, profile: dict) -> bool:
                 else:
                     await message.answer_media_group(media_group)
                 return True
-        
-        # Если нет медиа — отправляем текст
         text = (
             f"👤 <b>{profile['name']}</b>\n"
             f"📝 <b>Описание:</b>\n{profile['description']}\n\n"
