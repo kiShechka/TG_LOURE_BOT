@@ -268,23 +268,25 @@ async def view_my_profile(message_or_callback: Message | CallbackQuery):
     try:
         if isinstance(message_or_callback, CallbackQuery):
             user_id = message_or_callback.from_user.id
-            msg = message_or_callback.message
             await message_or_callback.answer()
+            reply_func = message_or_callback.message.answer
         else:
             user_id = message_or_callback.from_user.id
-            msg = message_or_callback
+            reply_func = message_or_callback.answer
+        
         profiles = await get_user_profiles(user_id)
         
         if not profiles:
-            await msg.answer(
-                "У вас нет анкет.\n\nСоздайте первую анкету командой /create"
-            )
+            await reply_func("У вас нет анкет.\n\nСоздайте первую анкету командой /create")
             return
         
-        await msg.answer("<b>Ваши анкеты:</b>\n", parse_mode=ParseMode.HTML)
+        await reply_func("<b>Ваши анкеты:</b>\n", parse_mode=ParseMode.HTML)
         
         for profile in profiles:
-            await send_simple_profile(msg, profile)
+            if isinstance(message_or_callback, CallbackQuery):
+                await send_simple_profile(message_or_callback.message, profile)
+            else:
+                await send_simple_profile(message_or_callback, profile)
             
             buttons = []
             if profile.get('is_active'):
@@ -295,8 +297,8 @@ async def view_my_profile(message_or_callback: Message | CallbackQuery):
             buttons.append(InlineKeyboardButton(text="Редактировать", callback_data=f"edit_this_{profile['code']}"))
             buttons.append(InlineKeyboardButton(text="Удалить", callback_data=f"delete_this_{profile['code']}"))
             
-            await msg.answer(
-                "_________________",
+            await reply_func(
+                "__________________",
                 reply_markup=InlineKeyboardMarkup(inline_keyboard=[buttons])
             )
             
