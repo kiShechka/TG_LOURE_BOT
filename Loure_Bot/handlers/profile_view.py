@@ -269,7 +269,7 @@ async def view_my_profile(message_or_callback: Message | CallbackQuery):
     profiles = await get_user_profiles(user_id)
     
     if not profiles:
-        await message.answer(
+        await message_or_callback.answer(
             "У вас нет анкет.\n\n Создайте первую анкету командой /create"
         )
         return
@@ -292,7 +292,7 @@ async def view_my_profile(message_or_callback: Message | CallbackQuery):
     if len(profiles) < 3:
         buttons.append([InlineKeyboardButton(text="Создать анкету", callback_data="create_profile")])
     
-    await message.answer(text, parse_mode=ParseMode.HTML, reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
+    await message_or_callback.answer(text, parse_mode=ParseMode.HTML, reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
 
 @view_router.callback_query(F.data.startswith("set_active_"))
 async def set_active_callback(callback: CallbackQuery):
