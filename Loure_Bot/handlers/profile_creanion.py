@@ -121,10 +121,10 @@ async def start_create_profile(callback: CallbackQuery, state: FSMContext):
     )
     
 @profile_router.message(F.data == "create")
-async def cmd_create_profile(callback: CallbackQuery, state: FSMContext):
+async def cmd_create_profile(message: Message, state: FSMContext):
     await state.set_state(ProfileCreation.choose_industry)
     
-    await callback.message.edit_text(
+    await message.answer(
         text="Выбери свою отрасль:",
         reply_markup=get_industry_keyboard()
     )
