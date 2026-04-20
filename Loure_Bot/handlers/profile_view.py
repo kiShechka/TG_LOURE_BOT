@@ -546,7 +546,11 @@ async def accept_response(callback: CallbackQuery, bot: Bot):
             chat_code = existing_chat['chat_code']
             await callback.message.edit_text(
                 f"✅ Чат уже существует!\n"
-                f"Код чата: <code>{chat_code}</code>",
+                f"Код чата: <code>{chat_code}</code>"
+                f"• Отправляйте сообщения:\n<code>/send {other_code} Ваше сообщение</code>\n\n"
+                f"• Все чаты: /my_chats\n"
+                f"• История: /chat_history {other_code}\n"
+                f"• Закрыть чат: /close_chat {other_code}\n",
                 parse_mode=ParseMode.HTML
             )
         else:
