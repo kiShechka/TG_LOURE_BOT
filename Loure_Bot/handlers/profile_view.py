@@ -270,29 +270,28 @@ async def view_my_profile(message_or_callback: Message | CallbackQuery):
     
     if not profiles:
         await message_or_callback.answer(
-            "У вас нет анкет.\n\n Создайте первую анкету командой /create"
+            "У вас нет анкет.\n\nСоздайте первую анкету командой /create"
         )
         return
     
-    text = "<b>Ваши анкеты:</b>\n\n"
-    buttons = []
+    await message_or_callback.answer("<b>Ваши анкеты:</b>\n", parse_mode=ParseMode.HTML)
     
-    for p in profiles:
-        active_mark = "✅ " if p.get('is_active') else "○ "
-        text += f"{active_mark}<b>{p['name']}</b> ({INDUSTRIES[p['industry']]['name']})\n"
-        text += f"└ Код: <code>{p['code']}</code>\n\n"
+    for profile in profiles:
+        await send_simple_profile(message, profile)
         
-        action_buttons = []
-        if not p.get('is_active'):
-            action_buttons.append(InlineKeyboardButton(text="⭐ Сделать активной", callback_data=f"set_active_{p['code']}"))
-        action_buttons.append(InlineKeyboardButton(text="Редактировать", callback_data=f"edit_this_{p['code']}"))
-        action_buttons.append(InlineKeyboardButton(text="Удалить", callback_data=f"delete_this_{p['code']}"))
-        buttons.append(action_buttons)
-    
-    if len(profiles) < 3:
-        buttons.append([InlineKeyboardButton(text="Создать анкету", callback_data="create_profile")])
-    
-    await message_or_callback.answer(text, parse_mode=ParseMode.HTML, reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
+        buttons = []
+        if profile.get('is_active'):
+            buttons.append(InlineKeyboardButton(text="✅ Активна", callback_data="noop"))
+        else:
+            buttons.append(InlineKeyboardButton(text="⭐ Сделать активной", callback_data=f"set_active_{profile['code']}"))
+        
+        buttons.append(InlineKeyboardButton(text="Редактировать", callback_data=f"edit_this_{profile['code']}"))
+        buttons.append(InlineKeyboardButton(text="Удалить", callback_data=f"delete_this_{profile['code']}"))
+        
+        await message_or_callback.answer(
+            "_____________________",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[buttons])
+        )
 
 @view_router.callback_query(F.data.startswith("set_active_"))
 async def set_active_callback(callback: CallbackQuery):
