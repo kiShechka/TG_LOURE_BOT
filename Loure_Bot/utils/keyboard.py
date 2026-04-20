@@ -3,8 +3,7 @@ from config import INDUSTRIES, TARGETS
 
 def get_main_menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📝 Создать анкету", callback_data='create_profile')],
-        [InlineKeyboardButton(text="🔍 Смотреть анкеты", callback_data='view_profiles')]
+        [InlineKeyboardButton(text="Создать анкету", callback_data='create_profile')]
     ])
 
 def get_industry_keyboard() -> InlineKeyboardMarkup:
