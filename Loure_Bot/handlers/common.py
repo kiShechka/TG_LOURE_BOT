@@ -17,7 +17,6 @@ common_router = Router()
 
 @common_router.message(CommandStart())
 async def start(message: Message):
-    """Обработчик команды /start"""
     try:
         profile = await get_profile_by_user_id(message.from_user.id)
         
@@ -25,11 +24,6 @@ async def start(message: Message):
             text = (
                 "👋 С возвращением!\n\n"
                 "У вас уже есть созданная анкета.\n\n"
-                "📋 <b>Доступные действия:</b>\n"
-                "• Просмотреть свою анкету\n"
-                "• Редактировать анкету\n"
-                "• Удалить анкету\n"
-                "• Искать другие анкеты"
             )
             
             keyboard = InlineKeyboardMarkup(inline_keyboard=[
