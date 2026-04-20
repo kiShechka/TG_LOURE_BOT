@@ -101,13 +101,17 @@ async def send_simple_profile(message: Message, profile: dict) -> bool:
         
 @view_router.callback_query(F.data == "view_profiles")
 async def start_viewing(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    await start_viewing_logic(callback.message, callback.from_user.id, state)
+
+@view_router.message(Command("view_profiles"))
+async def cmd_view_profiles(message: Message, state: FSMContext):
+    await start_viewing_logic(message, message.from_user.id, state)
+async def start_viewing_logic(msg: Message, user_id: int, state: FSMContext):
     try:
-        await callback.answer()
-        
-        user_id = callback.from_user.id
         user_profile = await get_profile_by_user_id(user_id)
         if not user_profile:
-            await callback.message.edit_text(
+            await msg.edit_text(
                 "⛔️ У вас нет анкеты!\n\n"
                 "Сначала создайте анкету.",
                 reply_markup=InlineKeyboardMarkup(inline_keyboard=[
@@ -117,7 +121,7 @@ async def start_viewing(callback: CallbackQuery, state: FSMContext):
             return
         recommended_profiles = await apply_filters(user_profile)
         if not recommended_profiles:
-            await callback.message.edit_text(
+            await msg.edit_text(
                 "Пока нет подходящих анкет.\n\n"
                 "Попробуйте позже или измените критерии поиска.",
                 reply_markup=InlineKeyboardMarkup(inline_keyboard=[
@@ -132,11 +136,14 @@ async def start_viewing(callback: CallbackQuery, state: FSMContext):
         })
         
         logger.info(f"Начат просмотр для user_id={user_id}, найдено {len(recommended_profiles)} анкет")
-        await show_current_profile(callback, state)
+        if isinstance(msg, Message):
+            await show_current_profile_command(msg, state)
+        else:
+            await show_current_profile(msg, state)
         
     except Exception as e:
-        logger.error(f"Ошибка в start_viewing: {e}", exc_info=True)
-        await callback.answer("Произошла ошибка. Попробуйте позже.", show_alert=True)
+        logger.error(f"Ошибка в start_viewing_logic: {e}", exc_info=True)
+        await msg.answer("🚨 Произошла ошибка. Попробуйте позже.")
 
 @view_router.callback_query(F.data == "next_profile")
 async def show_next_profile(callback: CallbackQuery, state: FSMContext):
@@ -164,6 +171,19 @@ async def show_next_profile(callback: CallbackQuery, state: FSMContext):
 
 async def show_current_profile(callback: CallbackQuery, state: FSMContext):
     try:
+        data = await state.get_data()
+        current_index = data.get('current_index', 0)
+        profiles = data.get('recommended_profiles', [])
+        total = data.get('total_profiles', 0)
+        
+        if current_index >= len(profiles):
+            await message.answer("✅ Вы просмотрели все анкеты!")
+            await state.clear()
+            return
+        
+        current_profile = profiles[current_index]
+        await send_simple_profile(message, current_profile)
+        
         data = await state.get_data()
         current_index = data.get('current_index', 0)
         profiles = data.get('recommended_profiles', [])
