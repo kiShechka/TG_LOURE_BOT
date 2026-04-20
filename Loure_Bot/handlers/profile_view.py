@@ -50,7 +50,15 @@ async def send_simple_profile(message: Message, profile: dict) -> bool:
                 f"📝 <b>Описание:</b>\n{profile['description']}\n\n"
                 f"<b>Код:</b> <code>{profile['code']}</code>"
             )
-            for i, (media_type, file_id) in enumerate(media):
+
+            valid_media = []
+            for item in media:
+                if isinstance(item, (list, tuple)) and len(item) >= 2:
+                    valid_media.append(item)
+                else:
+                    logger.warning(f"Пропущен битый элемент медиа: {item}")
+            
+            for i, (media_type, file_id) in enumerate(valid_media):
                 if media_type == 'photo':
                     if i == 0:
                         media_group.append(InputMediaPhoto(media=file_id, caption=caption, parse_mode=ParseMode.HTML))
