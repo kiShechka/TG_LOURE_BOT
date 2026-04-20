@@ -7,18 +7,21 @@ from database.crud import get_all_profiles, get_profiles_by_industry, get_profil
 
 logger = logging.getLogger(__name__)
 
-async def apply_filters(user_profile: Dict) -> List[Dict]:
+from database.crud import get_all_profiles, get_profiles_by_industry, get_profiles_by_target, get_active_profile
+
+async def apply_filters(user_id: int) -> List[Dict]:
     try:
+        user_profile = await get_active_profile(user_id)
+        
         if not user_profile:
-            logger.error("apply_filters: user_profile is empty")
+            logger.error(f"apply_filters: активная анкета не найдена для user_id {user_id}")
             return []
         
-        user_id = user_profile.get('user_id')
         user_industry = user_profile.get('industry')
         user_target = user_profile.get('target')
         
-        if not all([user_id, user_industry, user_target]):
-            logger.error(f"apply_filters: missing required fields in user_profile: {user_profile}")
+        if not all([user_industry, user_target]):
+            logger.error(f"apply_filters: missing required fields in active profile: {user_profile}")
             return []
         
         all_profiles = await get_all_profiles()
@@ -36,13 +39,16 @@ async def apply_filters(user_profile: Dict) -> List[Dict]:
                 target_match = user_target
             if profile.get('target') != target_match:
                 continue
-            
             if profile.get('industry') != user_industry:
                 continue
             
             filtered_profiles.append(profile)
+        activity_scores = await get_all_activity_scores()
+        for profile in filtered_profiles:
+            profile['activity_score'] = activity_scores.get(profile['user_id'], 0)
+        filtered_profiles.sort(key=lambda x: x.get('activity_score', 0), reverse=True)
         
-        logger.info(f"apply_filters: filtered {len(filtered_profiles)} profiles for user {user_id}")
+        logger.info(f"apply_filters: filtered {len(filtered_profiles)} profiles for user {user_id} (active profile: {user_profile['name']})")
         return filtered_profiles
         
     except Exception as e:
