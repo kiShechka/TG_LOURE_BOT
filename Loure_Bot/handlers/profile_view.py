@@ -251,20 +251,6 @@ async def show_previous_profile(callback: CallbackQuery, state: FSMContext):
         logger.error(f"Ошибка в show_previous_profile: {e}", exc_info=True)
         await callback.answer("❌ Ошибка", show_alert=True)
 
-@view_router.callback_query(F.data == "stop_viewing")
-async def stop_viewing(callback: CallbackQuery, state: FSMContext):
-    await callback.answer("Просмотр остановлен")
-    
-    await callback.message.edit_text(
-        "👌 Просмотр анкет остановлен.\n\n"
-        "Что хотите сделать дальше?",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="Создать/редактировать анкету", callback_data='create_profile')],
-            [InlineKeyboardButton(text="Главное меню", callback_data='main_menu')]
-        ])
-    )
-    await state.clear()
-
 @view_router.message(F.text == "📋 Моя анкета")
 @view_router.callback_query(F.data == "my_profile")
 async def view_my_profile(message_or_callback: Message | CallbackQuery):
@@ -360,7 +346,7 @@ async def handle_visit_channel(callback: CallbackQuery):
         await callback.message.answer(
             f"🔗 <b>Ссылка на канал пользователя {target_profile['name']}:</b>\n{channel_link}",
             parse_mode=ParseMode.HTML,
-            disable_web_page_preview=False  # Telegram покажет превью ссылки
+            disable_web_page_preview=False  
         )
 
         await callback.message.answer(
