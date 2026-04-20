@@ -39,40 +39,70 @@ def extract_channel_link(text: str) -> str | None:
         return f"https://t.me/{at_match.group(1)}"
     return None
     
+import json
+
 async def send_simple_profile(message: Message, profile: dict) -> bool:
     try:
-        media = profile.get('media', [])
-        await message.answer(f"🔍 Отладка: {profile['name']}, медиа: {type(media)}, длина: {len(media)}")
+        media_raw = profile.get('media', [])
+        
+        # Если media пришла как строка — парсим JSON
+        if isinstance(media_raw, str):
+            try:
+                media = json.loads(media_raw)
+            except:
+                media = []
+        else:
+            media = media_raw
         
         if media and len(media) > 0:
-            # Пробуем отправить первое медиа
-            first = media[0]
-            await message.answer(f"Первый элемент: {type(first)} = {str(first)[:100]}")
-            
-            if isinstance(first, (list, tuple)) and len(first) >= 2:
-                media_type, file_id = first[0], first[1]
-                if media_type == 'photo':
-                    await message.answer_photo(file_id, caption=f"Тестовое фото для {profile['name']}")
-                elif media_type == 'video':
-                    await message.answer_video(file_id, caption=f"Тестовое видео для {profile['name']}")
-            else:
-                await message.answer(f"❌ Неправильный формат: {type(first)}")
-        else:
-            # Если нет медиа — отправляем текст
-            text = (
+            media_group = []
+            caption = (
                 f"👤 <b>{profile['name']}</b>\n"
                 f"📝 <b>Описание:</b>\n{profile['description']}\n\n"
-                f"🔍 <b>Ищет:</b> {TARGETS.get(profile['target'], profile['target'])}\n"
-                f"🆔 <b>Код:</b> <code>{profile['code']}</code>"
+                f"<b>Код:</b> <code>{profile['code']}</code>"
             )
-            await message.answer(text, parse_mode=ParseMode.HTML)
+            
+            for i, item in enumerate(media):
+                if isinstance(item, (list, tuple)) and len(item) >= 2:
+                    media_type, file_id = item[0], item[1]
+                    
+                    if media_type == 'photo':
+                        if i == 0:
+                            media_group.append(InputMediaPhoto(media=file_id, caption=caption, parse_mode=ParseMode.HTML))
+                        else:
+                            media_group.append(InputMediaPhoto(media=file_id))
+                    elif media_type == 'video':
+                        if i == 0:
+                            media_group.append(InputMediaVideo(media=file_id, caption=caption, parse_mode=ParseMode.HTML))
+                        else:
+                            media_group.append(InputMediaVideo(media=file_id))
+            
+            if media_group:
+                if len(media_group) == 1:
+                    media_item = media_group[0]
+                    if isinstance(media_item, InputMediaPhoto):
+                        await message.answer_photo(media_item.media, caption=media_item.caption, parse_mode=media_item.parse_mode)
+                    elif isinstance(media_item, InputMediaVideo):
+                        await message.answer_video(media_item.media, caption=media_item.caption, parse_mode=media_item.parse_mode)
+                else:
+                    await message.answer_media_group(media_group)
+                return True
         
+        # Если нет медиа — отправляем текст
+        text = (
+            f"👤 <b>{profile['name']}</b>\n"
+            f"📝 <b>Описание:</b>\n{profile['description']}\n\n"
+            f"🔍 <b>Ищет:</b> {TARGETS.get(profile['target'], profile['target'])}\n"
+            f"🆔 <b>Код:</b> <code>{profile['code']}</code>"
+        )
+        await message.answer(text, parse_mode=ParseMode.HTML)
         return True
         
     except Exception as e:
-        logger.error(f"Ошибка: {e}")
+        logger.error(f"Ошибка отправки анкеты: {e}")
         await message.answer(f"❌ Ошибка: {str(e)[:200]}")
         return False
+        
 @view_router.callback_query(F.data == "view_profiles")
 async def start_viewing(callback: CallbackQuery, state: FSMContext):
     try:
