@@ -14,7 +14,7 @@ from aiogram.enums import ParseMode
 
 from config import INDUSTRIES, TARGETS, DB_NAME
 from utils.keyboard import get_industry_keyboard, get_target_keyboard, get_main_menu_keyboard
-from database.crud import save_profile_crud, get_admin_chat, get_profile_by_user_id
+from database.crud import save_profile_crud, get_admin_chat, get_profile_by_user_id, can_create_profile
 import aiosqlite
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
@@ -168,7 +168,6 @@ async def handle_photo(message: Message, state: FSMContext):
         industry = data.get('industry')
         max_files = INDUSTRIES[industry]['max_files']
         
-        # Определяем тип медиа
         if message.photo:
             file_id = message.photo[-1].file_id
             media_type = 'photo'
@@ -277,6 +276,11 @@ async def get_target(callback: CallbackQuery, state: FSMContext):
 @profile_router.message(ProfileCreation.finish)
 async def finish_profile(message: Message, state: FSMContext, bot):
     try:
+        if not await can_create_profile(message.from_user.id):
+            await message.answer("У вас уже есть 3 анкеты")
+            await state.clrar()
+            return
+            
         data = await state.get_data()
         
         required_fields = ['name', 'industry', 'description', 'target', 'media']
