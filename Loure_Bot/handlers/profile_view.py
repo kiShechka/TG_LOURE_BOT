@@ -319,7 +319,6 @@ async def set_active_callback(callback: CallbackQuery):
     
     await set_active_profile(user_id, profile_code)
     await callback.answer("✅ Анкета теперь активная!")
-    await view_my_profile(callback.message) 
     
     await callback.message.delete()
     fake_message = await callback.message.answer("Обновляем список анкет...")
