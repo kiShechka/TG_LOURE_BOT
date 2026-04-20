@@ -277,7 +277,7 @@ async def view_my_profile(message_or_callback: Message | CallbackQuery):
         
         if not profiles:
             await msg.answer(
-                "У вас нет анкет.\n\n➕ Создайте первую анкету командой /create"
+                "У вас нет анкет.\n\nСоздайте первую анкету командой /create"
             )
             return
         
