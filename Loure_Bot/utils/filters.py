@@ -3,11 +3,10 @@ import logging
 import re
 from typing import List, Dict, Optional
 from config import TARGET_MATCHING, INDUSTRIES, TARGETS
-from database.crud import get_all_profiles, get_profiles_by_industry, get_profiles_by_target
+from database.crud import get_all_profiles, get_profiles_by_industry, get_profiles_by_target, get_active_profile, get_all_activity_scores
 
 logger = logging.getLogger(__name__)
 
-from database.crud import get_all_profiles, get_profiles_by_industry, get_profiles_by_target, get_active_profile
 
 async def apply_filters(user_id: int) -> List[Dict]:
     try:
@@ -19,7 +18,6 @@ async def apply_filters(user_id: int) -> List[Dict]:
         
         user_industry = user_profile.get('industry')
         user_target = user_profile.get('target')
-        
         if not all([user_industry, user_target]):
             logger.error(f"apply_filters: missing required fields in active profile: {user_profile}")
             return []
@@ -28,7 +26,6 @@ async def apply_filters(user_id: int) -> List[Dict]:
         if not all_profiles:
             logger.info("apply_filters: no profiles in database")
             return []
-        
         filtered_profiles = []
         for profile in all_profiles:
             if profile.get('user_id') == user_id:
@@ -39,6 +36,7 @@ async def apply_filters(user_id: int) -> List[Dict]:
                 target_match = user_target
             if profile.get('target') != target_match:
                 continue
+            
             if profile.get('industry') != user_industry:
                 continue
             
