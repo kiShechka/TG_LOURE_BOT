@@ -5,6 +5,7 @@ import aiosqlite
 from typing import List, Dict, Optional
 from datetime import datetime
 from aiogram import Router, F, Bot
+from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InputMediaVideo, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.fsm.context import FSMContext
 from aiogram.enums import ParseMode
