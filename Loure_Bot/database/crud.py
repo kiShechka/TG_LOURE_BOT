@@ -745,13 +745,12 @@ async def update_activity(user_id: int, action_type: str) -> None:
     scores = {
         'scroll': 0.5,
         'reaction': 1.0,
-        'action': 2.0  
+        'action': 2.0
     }
     
     score = scores.get(action_type, 0)
     
     async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT) as db:
-        # Проверяем, есть ли запись за эту неделю
         cursor = await db.execute(
             "SELECT 1 FROM user_activity WHERE user_id = ? AND week_start = ?",
             (user_id, week_start)
@@ -783,6 +782,7 @@ async def update_activity(user_id: int, action_type: str) -> None:
                 (user_id, week_start, scrolls, reactions, actions, score)
             )
         await db.commit()
+
 
 async def get_user_activity_score(user_id: int) -> float:
     week_start = await get_current_week_start()
