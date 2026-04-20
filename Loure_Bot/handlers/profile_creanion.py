@@ -120,7 +120,7 @@ async def start_create_profile(callback: CallbackQuery, state: FSMContext):
         reply_markup=get_industry_keyboard()
     )
     
-@profile_router.callback_query(F.data == "create")
+@profile_router.message(F.data == "create")
 async def cmd_create_profile(callback: CallbackQuery, state: FSMContext):
     await state.set_state(ProfileCreation.choose_industry)
     
