@@ -278,12 +278,6 @@ async def view_my_profile(message_or_callback: Message | CallbackQuery):
             msg = message_or_callback
         profiles = await get_user_profiles(user_id)
         
-        if not profiles:
-            await msg.answer(
-                "У вас нет анкет.\n\nСоздайте первую анкету командой /create"
-            )
-            return
-        
         await msg.answer("<b>Ваши анкеты:</b>\n", parse_mode=ParseMode.HTML)
         
         for profile in profiles:
