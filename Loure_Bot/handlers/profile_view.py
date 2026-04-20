@@ -265,7 +265,7 @@ async def stop_viewing(callback: CallbackQuery, state: FSMContext):
 @view_router.message(F.text == "📋 Моя анкета")
 @view_router.callback_query(F.data == "my_profile")
 async def view_my_profile(message_or_callback: Message | CallbackQuery):
-    user_id = message.from_user.id
+    user_id = message_or_callback.from_user.id
     profiles = await get_user_profiles(user_id)
     
     if not profiles:
