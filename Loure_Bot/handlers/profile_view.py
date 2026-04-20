@@ -483,14 +483,14 @@ async def handle_response(callback: CallbackQuery, bot: Bot):
         if await is_user_banned(callback.from_user.id):
             await callback.answer("❌ Вы забанены и не можете использовать эту функцию", show_alert=True)
             return
-        executor_profile = await get_profile_by_user_id(callback.from_user.id)
+        executor_profile = await get_active_profile(callback.from_user.id)
         if not executor_profile:
             await callback.answer("❌ У вас нет анкеты. Создайте её!", show_alert=True)
             return
         if await check_response(customer_profile['code'], callback.from_user.id):
             await callback.answer("✅ Вы уже откликались на эту анкету", show_alert=True)
             return
-        await save_response(customer_profile['code'], callback.from_user.id, executor_profile['name'])
+        await save_response(customer_profile['code'], callback.from_user.id, executor_profile['name'],executor_profile['code'])
         await send_profile_to_user(
             bot=bot,
             user_id=customer_profile['user_id'],
