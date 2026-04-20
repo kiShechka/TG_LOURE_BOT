@@ -254,15 +254,12 @@ async def show_current_profile_command(message: Message, state: FSMContext):
             return
         
         current_profile = profiles[current_index]
-        await send_simple_profile(message, current_profile)  # <-- здесь message
+        await send_simple_profile(message, current_profile)
 
-        target = current_profile.get('target','')
-        
+        target = current_profile.get('target', '')
         keyboard_buttons = []
-        reaction_buttons = []
-
         reactions = await get_reactions(current_profile['code'])
-        
+        reaction_buttons = []
         for emoji, callback_name in [("❤️", "like"), ("✨", "fire"), ("💫", "art")]:
             count = reactions.get(emoji, 0)
             text = f"{emoji} {count}" if count > 0 else emoji
@@ -270,14 +267,13 @@ async def show_current_profile_command(message: Message, state: FSMContext):
                 text=text,
                 callback_data=f"react_{current_profile['code']}_{callback_name}"
             ))
-        
         if reaction_buttons:
             keyboard_buttons.append(reaction_buttons)
-    
+
         if target == 'executor':
             responses_count = await get_responses_count(current_profile['code'])
             keyboard_buttons.append([InlineKeyboardButton(
-                text=f"Откликнуться({responses_count})",
+                text=f"Откликнуться ({responses_count})",
                 callback_data=f"respond_{current_profile['code']}"
             )])
         elif target == 'client':
@@ -288,29 +284,27 @@ async def show_current_profile_command(message: Message, state: FSMContext):
         else:
             channel_link = extract_channel_link(current_profile.get('description', ''))
             if channel_link:
-                visit_count = await get_visit_count(current_profile['code']) if channel_link else 0
+                visit_count = await get_visit_count(current_profile['code'])
                 keyboard_buttons.append([InlineKeyboardButton(
-                    text=f"На канал({visit_count})",
+                    text=f"На канал ({visit_count})",
                     callback_data=f"visit_channel_{current_profile['code']}"
                 )])
-                
-        if current_index + 1 < len(profiles):
+        if current_index + 1 < total:
             keyboard_buttons.append([InlineKeyboardButton(
                 text=f"Дальше → ({current_index + 1}/{total})", 
                 callback_data='next_profile'
             )])
         
         keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
-
-        await callback.message.answer(
+        
+        await message.answer(
             "__________________________",
             reply_markup=keyboard
         )
-
+        
     except Exception as e:
-        logger.error(f"Ошибка в show_current_profile: {e}", exc_info=True)
-        await callback.answer("❌ Ошибка отображения анкеты", show_alert=True)
-
+        logger.error(f"Ошибка в show_current_profile_command: {e}", exc_info=True)
+        await message.answer("❌ Ошибка отображения анкеты")
 
 @view_router.callback_query(F.data == "prev_profile")
 async def show_previous_profile(callback: CallbackQuery, state: FSMContext):
@@ -358,7 +352,7 @@ async def view_my_profile(message_or_callback: Message | CallbackQuery):
             buttons.append(InlineKeyboardButton(text="Удалить", callback_data=f"delete_this_{profile['code']}"))
             
             await msg.answer(
-                "____________________",
+                "__________________________",
                 reply_markup=InlineKeyboardMarkup(inline_keyboard=[buttons])
             )
         
