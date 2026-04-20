@@ -217,11 +217,6 @@ async def show_current_profile(callback: CallbackQuery, state: FSMContext):
                 text=f"Дальше → ({current_index + 1}/{total})", 
                 callback_data='next_profile'
             )])
-        else:
-            keyboard_buttons.append([InlineKeyboardButton(
-                text=f"Последняя анкета ({current_index + 1}/{total})", 
-                callback_data='next_profile'
-            )])
         
         keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
 
