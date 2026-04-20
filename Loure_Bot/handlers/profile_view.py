@@ -11,7 +11,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.enums import ParseMode
 
 from config import INDUSTRIES, TARGETS, ADMIN_CHAT_ID, DB_PATH
-from database.crud import get_profile_by_user_id, get_recommended_profiles, get_visit_count,increment_daily_visit, increment_visit_count,save_response, check_response, get_responses_count, get_active_chat_by_users,get_user_active_chat,save_message, close_chat, is_user_banned,get_profile_by_code,get_reactions,save_reaction,update_activity,get_user_profiles,set_active_profile
+from database.crud import get_profile_by_user_id, get_recommended_profiles, get_visit_count,increment_daily_visit, increment_visit_count,save_response, check_response, get_responses_count, get_active_chat_by_users,get_user_active_chat,save_message, close_chat, is_user_banned,get_profile_by_code,get_reactions,save_reaction,update_activity,get_active_profile,get_user_profiles,set_active_profile
 from utils.filters import apply_filters
 
 logger = logging.getLogger(__name__)
@@ -110,7 +110,7 @@ async def cmd_view_profiles(message: Message, state: FSMContext):
     await start_viewing_logic(message, message.from_user.id, state)
 async def start_viewing_logic(msg: Message, user_id: int, state: FSMContext):
     try:
-        user_profile = await get_profile_by_user_id(user_id)
+        user_profile = await get_active_profile(user_id)
         if not user_profile:
             await msg.edit_text(
                 "⛔️ У вас нет анкеты!\n\n"
@@ -120,7 +120,7 @@ async def start_viewing_logic(msg: Message, user_id: int, state: FSMContext):
                 ])
             )
             return
-        recommended_profiles = await apply_filters(user_profile)
+        recommended_profiles = await apply_filters(user_id)
         if not recommended_profiles:
             await msg.edit_text(
                 "Пока нет подходящих анкет.\n\n"
