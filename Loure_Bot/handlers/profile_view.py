@@ -138,8 +138,6 @@ async def start_viewing_logic(msg: Message, user_id: int, state: FSMContext):
         
         logger.info(f"Начат просмотр для user_id={user_id}, найдено {len(recommended_profiles)} анкет")
         if isinstance(msg, Message):
-            await show_current_profile_command(msg, state)
-        else:
             await show_current_profile(msg, state)
         
     except Exception as e:
