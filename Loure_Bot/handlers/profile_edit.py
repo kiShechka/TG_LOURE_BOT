@@ -277,8 +277,8 @@ async def finish_edit_profile(message: Message, state: FSMContext):
             'industry': current.get('industry'),
             'description': data.get('edited_description', current.get('description')),
             'target': data.get('edited_target', current.get('target')),
-            'media': data.get('edited_media', current.get('media', [])),
-            'code': data.get('original_code'),  # сохраняем старый код
+            'media': edited_media,
+            'code': data.get('original_code'),  
             'created_at': current.get('created_at', datetime.now().isoformat())
         }
         success = await save_profile_crud(edited_profile)
