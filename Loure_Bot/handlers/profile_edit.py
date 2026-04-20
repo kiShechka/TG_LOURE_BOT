@@ -259,7 +259,7 @@ async def finish_edit_profile(message: Message, state: FSMContext):
         data = await state.get_data()
         current = data.get('current', {})
 
-        editrd_media= data.get('edited_media')
+        edited_media= data.get('edited_media')
         if edited_media is None:
             edited_media = current.get('media', [])
             
