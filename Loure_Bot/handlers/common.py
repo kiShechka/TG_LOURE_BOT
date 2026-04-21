@@ -325,7 +325,7 @@ async def send_message_handler(message: Message):
             "❌ Используйте: /send КОД_ЧАТА ТЕКСТ\n\n"
             "Пример: /send GDK6csDJQl7ixdYq_LUljbmwYlfgeNpGC Привет!"
         )
-        return 
+        return
     chat_code = args[1]
     msg_text = args[2]
     chat = await get_chat_by_code(chat_code)
@@ -334,13 +334,26 @@ async def send_message_handler(message: Message):
         return
     
     user_id = message.from_user.id
-    if user_id not in (chat['customer_id'], chat['executor_id']):
+    user_profile = await get_profile_by_user_id(user_id)
+    
+    if not user_profile:
+        await message.answer("❌ У вас нет анкеты")
+        return
+    
+    user_code = user_profile['code']
+    if user_code not in (chat['customer_profile_code'], chat['executor_profile_code']):
         await message.answer("❌ Вы не участник этого чата")
         return
-    if user_id == chat['customer_id']:
-        receiver_id = chat['executor_id']
+    if user_code == chat['customer_profile_code']:
+        receiver_code = chat['executor_profile_code']
     else:
-        receiver_id = chat['customer_id']
+        receiver_code = chat['customer_profile_code']
+    receiver_profile = await get_profile_by_code(receiver_code)
+    if not receiver_profile:
+        await message.answer("❌ Профиль получателя не найден")
+        return
+    
+    receiver_id = receiver_profile['user_id']
     await save_message(chat_code, user_id, receiver_id, msg_text)
     await message.bot.send_message(
         chat_id=receiver_id,
@@ -350,5 +363,3 @@ async def send_message_handler(message: Message):
     )
     
     await message.answer("✅ Сообщение отправлено!")
-
-
