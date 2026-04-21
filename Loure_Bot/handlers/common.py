@@ -8,7 +8,7 @@ from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.enums import ParseMode
 
-from database.crud import delete_profile_by_user_id, get_profile_by_user_id,get_user_active_chat, save_message, close_chat, is_user_banned, get_chat_by_codes, get_chat_messages,get_or_create_chat,get_profile_by_code
+from database.crud import delete_profile_by_user_id, get_profile_by_user_id,get_user_active_chat, save_message, close_chat, is_user_banned, get_chat_by_codes,get_chat_by_code,get_chat_messages,get_or_create_chat,get_profile_by_code
 from utils.keyboard import get_main_menu_keyboard
 from config import DB_PATH
 
