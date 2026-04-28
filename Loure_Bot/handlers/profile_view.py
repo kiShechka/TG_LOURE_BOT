@@ -340,7 +340,6 @@ async def view_my_profile(message_or_callback: Message | CallbackQuery):
                 buttons.append(InlineKeyboardButton(text="⭐ Сделать активной", callback_data=f"set_active_{profile['code']}"))
             
             buttons.append(InlineKeyboardButton(text="Редактировать", callback_data=f"edit_this_{profile['code']}"))
-            buttons.append(InlineKeyboardButton(text="Удалить", callback_data=f"delete_this_{profile['code']}"))
             
             await msg.answer(
                 "__________________________",
