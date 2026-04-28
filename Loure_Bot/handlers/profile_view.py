@@ -146,6 +146,11 @@ async def show_next_profile(callback: CallbackQuery, state: FSMContext):
         data = await state.get_data()
         current_index = data.get('current_index', 0)
         profiles = data.get('recommended_profiles', [])
+
+        
+        print(f"DEBUG: current_index={current_index}, len(profiles)={len(profiles)}")
+        await callback.message.answer(f"🔍 Отладка: индекс={current_index}, всего={len(profiles)}")
+        
         new_index = current_index + 1
         await state.update_data({'current_index': new_index})
         
