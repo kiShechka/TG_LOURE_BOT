@@ -350,8 +350,8 @@ async def view_my_profile(message_or_callback: Message | CallbackQuery):
 
             keyboard = []
             if reactions_button:
-                keyboard.appened(reactions_button)
-            keyboard.appened(action_buttons)
+                keyboard.append(reactions_button)
+            keyboard.append(action_buttons)
             await msg.answer(
                 "__________________________",
                 reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard),
