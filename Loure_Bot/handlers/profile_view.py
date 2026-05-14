@@ -117,7 +117,7 @@ async def start_viewing_logic(msg: Message, user_id: int, state: FSMContext):
                 "Пока нет подходящих анкет.\n\n"
                 "Попробуйте позже или измените критерии поиска.",
                 reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                    [InlineKeyboardButton(text="✏️ Редактировать анкету", callback_data='edit_profile')]
+                    [InlineKeyboardButton(text="Редактировать анкету", callback_data='edit_profile')]
                 ])
             )
             return
@@ -135,7 +135,7 @@ async def start_viewing_logic(msg: Message, user_id: int, state: FSMContext):
         
     except Exception as e:
         logger.error(f"Ошибка в start_viewing_logic: {e}", exc_info=True)
-        await msg.answer("🚨 Произошла ошибка. Попробуйте позже.")
+        await msg.answer("Произошла ошибка. Попробуйте позже.")
 
 @view_router.callback_query(F.data == "next_profile")
 async def show_next_profile(callback: CallbackQuery, state: FSMContext):
@@ -348,7 +348,7 @@ async def view_my_profile(message_or_callback: Message | CallbackQuery):
             else:
                 action_buttons.append(InlineKeyboardButton(text="⭐ Сделать активной", callback_data=f"set_active_{profile['code']}"))
             
-            action_buttons.append(InlineKeyboardButton(text="Редактировать", callback_data=f"edit_this_{profile['code']}"))
+            action_buttons.append(InlineKeyboardButton(text="Редактировать", callback_data='edit_profile')
 
             keyboard = []
             if reactions_button:
