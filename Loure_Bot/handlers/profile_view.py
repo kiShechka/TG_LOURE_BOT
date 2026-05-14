@@ -340,7 +340,7 @@ async def view_my_profile(message_or_callback: Message | CallbackQuery):
                 text = f"{emoji} {count}" if count > 0 else emoji
                 reaction_buttons.append(InlineKeyboardButton(
                     text=text,
-                    callback_data=f"react_{current_profile['code']}_{callback_name}"
+                    callback_data=f"react_{profile['code']}_{callback_name}"
                 ))
             if reaction_buttons:
                 keyboard_buttons.append(reaction_buttons)
