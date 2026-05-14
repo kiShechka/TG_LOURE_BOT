@@ -342,8 +342,6 @@ async def view_my_profile(message_or_callback: Message | CallbackQuery):
                     text=text,
                     callback_data=f"react_{profile['code']}_{callback_name}"
                 ))
-            if reaction_buttons:
-                keyboard_buttons.append(reaction_buttons)
             buttons = []
             if profile.get('is_active'):
                 buttons.append(InlineKeyboardButton(text="✅ Активна", callback_data="noop"))
@@ -354,7 +352,7 @@ async def view_my_profile(message_or_callback: Message | CallbackQuery):
             
             await msg.answer(
                 "__________________________",
-                reply_markup=InlineKeyboardMarkup(inline_keyboard=[buttons])
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[reaction_buttons],[buttons]),parse_mode=ParseMode.HTML
             )
         
     except Exception as e:
