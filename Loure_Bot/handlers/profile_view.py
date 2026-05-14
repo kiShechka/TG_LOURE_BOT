@@ -342,18 +342,18 @@ async def view_my_profile(message_or_callback: Message | CallbackQuery):
                     text=text,
                     callback_data=f"react_{profile['code']}_{callback_name}"
                 ))
-            buttons = []
+            action_buttons = []
             if profile.get('is_active'):
-                buttons.append(InlineKeyboardButton(text="✅ Активна", callback_data="noop"))
+                action_buttons.append(InlineKeyboardButton(text="✅ Активна", callback_data="noop"))
             else:
-                buttons.append(InlineKeyboardButton(text="⭐ Сделать активной", callback_data=f"set_active_{profile['code']}"))
+                action_buttons.append(InlineKeyboardButton(text="⭐ Сделать активной", callback_data=f"set_active_{profile['code']}"))
             
-            buttons.append(InlineKeyboardButton(text="Редактировать", callback_data=f"edit_this_{profile['code']}"))
+            action_buttons.append(InlineKeyboardButton(text="Редактировать", callback_data=f"edit_this_{profile['code']}"))
 
             keyboard = []
             if reactions_button:
                 keyboard.appened(reactions_button)
-            keyboard.appened(buttons)
+            keyboard.appened(action_buttons)
             await msg.answer(
                 "__________________________",
                 reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard),
