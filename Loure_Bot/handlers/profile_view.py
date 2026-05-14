@@ -338,7 +338,7 @@ async def view_my_profile(message_or_callback: Message | CallbackQuery):
             for emoji, callback_name in [("❤️", "like"), ("✨", "fire"), ("💫", "art")]:
                 count = reactions.get(emoji, 0)
                 text = f"{emoji} {count}" if count > 0 else emoji
-                reaction_buttons.append(InlineKeyboardButton(
+                buttons.append(InlineKeyboardButton(
                     text=text,
                     callback_data=f"react_{profile['code']}_{callback_name}"
                 ))
