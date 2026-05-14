@@ -334,7 +334,7 @@ async def view_my_profile(message_or_callback: Message | CallbackQuery):
         for profile in profiles:
             await send_simple_profile(msg, profile)
             reactions = await get_reactions(profile['code'])
-            buttons = []
+            reactions_buttons = []
             for emoji, callback_name in [("❤️", "like"), ("✨", "fire"), ("💫", "art")]:
                 count = reactions.get(emoji, 0)
                 text = f"{emoji} {count}" if count > 0 else emoji
@@ -342,16 +342,21 @@ async def view_my_profile(message_or_callback: Message | CallbackQuery):
                     text=text,
                     callback_data=f"react_{profile['code']}_{callback_name}"
                 ))
+            buttons = []
             if profile.get('is_active'):
                 buttons.append(InlineKeyboardButton(text="✅ Активна", callback_data="noop"))
             else:
                 buttons.append(InlineKeyboardButton(text="⭐ Сделать активной", callback_data=f"set_active_{profile['code']}"))
             
             buttons.append(InlineKeyboardButton(text="Редактировать", callback_data=f"edit_this_{profile['code']}"))
-            
+
+            keyboard = []
+            if reactions_buttons:
+                keyboard.appened(reactions_buttons)
+            keyboard.appened(buttons)
             await msg.answer(
                 "__________________________",
-                reply_markup=InlineKeyboardMarkup(row_width=3).add(inline_keyboard=[buttons]),
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard),
                 parse_mode=ParseMode.HTML
             )
         
