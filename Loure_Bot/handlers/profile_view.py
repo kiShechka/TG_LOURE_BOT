@@ -333,7 +333,7 @@ async def view_my_profile(message_or_callback: Message | CallbackQuery):
         
         for profile in profiles:
             await send_simple_profile(msg, profile)
-            reactions = await get_reactions(current_profile['code'])
+            reactions = await get_reactions(profile['code'])
             reaction_buttons = []
             for emoji, callback_name in [("❤️", "like"), ("✨", "fire"), ("💫", "art")]:
                 count = reactions.get(emoji, 0)
