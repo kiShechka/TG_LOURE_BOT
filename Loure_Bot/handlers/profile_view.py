@@ -348,7 +348,7 @@ async def view_my_profile(message_or_callback: Message | CallbackQuery):
             else:
                 action_buttons.append(InlineKeyboardButton(text="⭐ Сделать активной", callback_data=f"set_active_{profile['code']}"))
             
-            action_buttons.append(InlineKeyboardButton(text="Редактировать", callback_data='edit_profile')
+            action_buttons.append(InlineKeyboardButton(text="Редактировать", callback_data='edit_profile'))
 
             keyboard = []
             if reactions_button:
