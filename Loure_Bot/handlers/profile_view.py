@@ -352,7 +352,9 @@ async def view_my_profile(message_or_callback: Message | CallbackQuery):
             
             await msg.answer(
                 "__________________________",
-                reply_markup=InlineKeyboardMarkup(inline_keyboard=[reaction_buttons],[buttons]),parse_mode=ParseMode.HTML
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[buttons]),
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[reaction_buttons]),
+                parse_mode=ParseMode.HTML
             )
         
     except Exception as e:
