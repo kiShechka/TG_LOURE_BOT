@@ -320,8 +320,8 @@ async def finish_profile(message: Message, state: FSMContext, bot):
             raise Exception("Не удалось сохранить анкету в БД")
         
         await send_full_profile(message, profile)
-        ADMIN_CHAT_ID = await get_admin_chat()
-        if ADMIN_CHAT_ID:
+        admin_chat_id = await get_admin_chat()
+        if admin_chat_id:
             await send_profile_to_admins(bot, profile, admin_chat_id)
         await state.clear()
         await message.answer(
