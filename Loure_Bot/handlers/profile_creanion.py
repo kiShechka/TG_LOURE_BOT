@@ -88,7 +88,7 @@ async def send_profile_to_admins(bot, profile: dict, admin_chat_id: int):
         ])
 
         await bot.send_message(
-            chat_id=admin_chat_id,
+            chat_id=ADMIN_CHAT_ID,
             text=text,
             parse_mode=ParseMode.HTML,
             reply_markup=keyboard
@@ -103,7 +103,7 @@ async def send_profile_to_admins(bot, profile: dict, admin_chat_id: int):
                     media_group.append(media)
                 
                 try:
-                    await bot.send_media_group(chat_id=admin_chat_id, media=media_group)
+                    await bot.send_media_group(chat_id=ADMIN_CHAT_ID, media=media_group)
                 except Exception as media_error:
                     logger.error(f"Ошибка отправки медиа: {media_error}")
 
@@ -320,8 +320,8 @@ async def finish_profile(message: Message, state: FSMContext, bot):
             raise Exception("Не удалось сохранить анкету в БД")
         
         await send_full_profile(message, profile)
-        admin_chat_id = await get_admin_chat()
-        if admin_chat_id:
+        ADMIN_CHAT_ID = await get_admin_chat()
+        if ADMIN_CHAT_ID:
             await send_profile_to_admins(bot, profile, admin_chat_id)
         await state.clear()
         await message.answer(
