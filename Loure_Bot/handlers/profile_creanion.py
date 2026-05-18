@@ -73,6 +73,8 @@ async def send_full_profile(message: Message, profile: dict):
 
 async def send_profile_to_admins(bot, profile: dict, admin_chat_id: int):
     try:
+        logger.info(f"начал отправку в админ чат {admin_chat_id}")
+        logger.info(f"начал отправку {profile.get('code')}")
         text = (
             f"🆕 Новая анкета:\n\n"
             f"👤 <b>{profile['name']}</b> ({INDUSTRIES[profile['industry']]['name']})\n"
@@ -93,6 +95,7 @@ async def send_profile_to_admins(bot, profile: dict, admin_chat_id: int):
             parse_mode=ParseMode.HTML,
             reply_markup=keyboard
         )
+        logger.info(f"текстовое сообщение отправлено")
         if profile.get('media'):
                 media_group = []
                 for i, (media_type, file_id) in enumerate(profile['media']):
