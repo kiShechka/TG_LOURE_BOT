@@ -88,7 +88,7 @@ async def send_profile_to_admins(bot, profile: dict, admin_chat_id: int):
         ])
 
         await bot.send_message(
-            chat_id=ADMIN_CHAT_ID,
+            chat_id=admin_chat_id,
             text=text,
             parse_mode=ParseMode.HTML,
             reply_markup=keyboard
@@ -103,7 +103,7 @@ async def send_profile_to_admins(bot, profile: dict, admin_chat_id: int):
                     media_group.append(media)
                 
                 try:
-                    await bot.send_media_group(chat_id=ADMIN_CHAT_ID, media=media_group)
+                    await bot.send_media_group(chat_id=admin_chat_id, media=media_group)
                 except Exception as media_error:
                     logger.error(f"Ошибка отправки медиа: {media_error}")
 
