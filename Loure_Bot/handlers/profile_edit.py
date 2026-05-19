@@ -252,7 +252,7 @@ async def skip_target(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     current = data.get('current', {})
     await state.update_data(edited_target=current.get('target', ''))
-    await finish_edit_profile(callback.message, state)
+    await finish_edit_profile(callback.message, state, bot)
 
 async def finish_edit_profile(message: Message, state: FSMContext, bot: Bot):
     try:
