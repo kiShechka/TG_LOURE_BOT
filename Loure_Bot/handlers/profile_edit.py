@@ -14,7 +14,7 @@ from aiogram.enums import ParseMode
 from config import INDUSTRIES, TARGETS
 from utils.keyboard import get_target_keyboard
 from database.crud import get_profile_by_user_id, save_profile_crud, get_active_profile
-from .profile_creanion import send_full_profile 
+from .profile_creanion import send_full_profile, send_profile_to_admins 
 
 logger = logging.getLogger(__name__)
 edit_router = Router()
@@ -290,7 +290,12 @@ async def finish_edit_profile(message: Message, state: FSMContext):
             raise Exception("Не удалось сохранить обновлённую анкету")
         
         await send_full_profile(message, edited_profile)
-        
+
+        from config import ADMIN_CHAT_ID
+        admin_chat_id = ADMIN_CHAT_ID if ADMIN_CHAT_ID else None
+        if ADMIN_CHAT_ID:
+            await send_profile_to_admins(bot, profile, ADMIN_CHAT_ID)
+            
         await state.clear()
         await message.answer(
             "✅ Анкета успешно обновлена! Хотите просмотреть другие анкеты?",
