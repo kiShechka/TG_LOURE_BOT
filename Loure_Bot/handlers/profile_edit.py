@@ -254,7 +254,7 @@ async def skip_target(callback: CallbackQuery, state: FSMContext):
     await state.update_data(edited_target=current.get('target', ''))
     await finish_edit_profile(callback.message, state)
 
-async def finish_edit_profile(message: Message, state: FSMContext, bot):
+async def finish_edit_profile(message: Message, state: FSMContext):
     try:
         data = await state.get_data()
         current = data.get('current', {})
@@ -294,7 +294,7 @@ async def finish_edit_profile(message: Message, state: FSMContext, bot):
         from config import ADMIN_CHAT_ID
         admin_chat_id = ADMIN_CHAT_ID if ADMIN_CHAT_ID else None
         if ADMIN_CHAT_ID:
-            await send_profile_to_admins(bot, profile, ADMIN_CHAT_ID)
+            await send_profile_to_admins(profile, ADMIN_CHAT_ID)
             
         await state.clear()
         await message.answer(
