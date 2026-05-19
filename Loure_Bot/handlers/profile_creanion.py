@@ -95,7 +95,7 @@ async def send_profile_to_admins(bot, profile: dict, admin_chat_id: int):
                     if media_type == 'photo':
                         media = InputMediaPhoto(media=file_id, caption=text if i == 0 else None, parse_mode=ParseMode.HTML)
                     else:
-                        media = InputMediaAudio(media=file_id, caption=text if i == 0 else None, parse_mode=ParseMode.HTML)
+                        media = InputMediaVideo(media=file_id, caption=text if i == 0 else None, parse_mode=ParseMode.HTML)
                     media_group.append(media)
                 
                 try:
