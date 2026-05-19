@@ -87,6 +87,7 @@ async def send_profile_to_admins(bot, profile: dict, admin_chat_id: int):
             chat_id=admin_chat_id,
             text="_________",
             parse_mode=ParseMode.HTML,
+            reply_markup=keyboard
         )
         if profile.get('media'):
                 media_group = []
