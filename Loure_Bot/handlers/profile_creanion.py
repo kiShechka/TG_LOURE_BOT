@@ -81,7 +81,7 @@ async def send_profile_to_admins(bot, profile: dict, admin_chat_id: int):
             f"<b>Ищет:</b> {TARGETS[profile['target']]}"
         )
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="❌ Удалить анкету", callback_data=f"delete_{profile['code']}")]
+            [InlineKeyboardButton(text="Удалить анкету /delete_admin")]
         ])
 
         await bot.send_message(
