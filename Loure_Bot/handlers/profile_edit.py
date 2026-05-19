@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 from typing import Optional
 
-from aiogram import F, Router
+from aiogram import F, Router, Bot
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto, InputMediaVideo
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -254,7 +254,7 @@ async def skip_target(callback: CallbackQuery, state: FSMContext):
     await state.update_data(edited_target=current.get('target', ''))
     await finish_edit_profile(callback.message, state)
 
-async def finish_edit_profile(message: Message, state: FSMContext):
+async def finish_edit_profile(message: Message, state: FSMContext, bot: Bot):
     try:
         data = await state.get_data()
         current = data.get('current', {})
@@ -294,7 +294,7 @@ async def finish_edit_profile(message: Message, state: FSMContext):
         from config import ADMIN_CHAT_ID
         admin_chat_id = ADMIN_CHAT_ID if ADMIN_CHAT_ID else None
         if ADMIN_CHAT_ID:
-            await send_profile_to_admins(profile, ADMIN_CHAT_ID)
+            await send_profile_to_admins(bot, edited_profile, ADMIN_CHAT_ID)
             
         await state.clear()
         await message.answer(
