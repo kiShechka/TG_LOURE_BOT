@@ -333,8 +333,4 @@ async def finish_profile(message: Message, state: FSMContext, bot):
         
     except Exception as e:
         logger.error(f"Ошибка при завершении анкеты: {e}", exc_info=True)
-        await message.answer(
-            "⚠️ Произошла ошибка при сохранении анкеты. "
-            "Попробуйте начать заново командой /start"
-        )
         await state.clear()
