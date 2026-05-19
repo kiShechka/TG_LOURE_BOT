@@ -80,15 +80,9 @@ async def send_profile_to_admins(bot, profile: dict, admin_chat_id: int):
             f"<b>Описание:</b>\n{profile['description']}\n\n"
             f"<b>Ищет:</b> {TARGETS[profile['target']]}"
         )
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="Удалить анкету /delete_admin")]
-        ])
-
         await bot.send_message(
             chat_id=admin_chat_id,
-            text="___________________",
             parse_mode=ParseMode.HTML,
-            reply_markup=keyboard
         )
         if profile.get('media'):
                 media_group = []
