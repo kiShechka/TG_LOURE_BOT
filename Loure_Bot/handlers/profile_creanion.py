@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import List, Tuple
 
 from aiogram import F, Router
-from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InputMediaVideo
+from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InputMediaVideo, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -73,29 +73,22 @@ async def send_full_profile(message: Message, profile: dict):
 
 async def send_profile_to_admins(bot, profile: dict, admin_chat_id: int):
     try:
-        logger.info(f"начал отправку в админ чат {admin_chat_id}")
-        logger.info(f"начал отправку {profile.get('code')}")
         text = (
-            f"🆕 Новая анкета:\n\n"
-            f"👤 <b>{profile['name']}</b> ({INDUSTRIES[profile['industry']]['name']})\n"
-            f"ID: {profile['user_id']}\n"
-            f"🔗 Код: <code>{profile['code']}</code>\n\n"
-            f"📝 <b>Описание:</b>\n{profile['description']}\n\n"
-            f"🔍 <b>Ищет:</b> {TARGETS[profile['target']]}"
+            f"Новая анкета:\n\n"
+            f"<b>{profile['name']}</b> ({INDUSTRIES[profile['industry']]['name']})\n"
+            f"Код: <code>{profile['code']}</code>\n\n"
+            f"<b>Описание:</b>\n{profile['description']}\n\n"
+            f"<b>Ищет:</b> {TARGETS[profile['target']]}"
         )
-        from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-        
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="❌ Удалить анкету", callback_data=f"delete_{profile['code']}")]
         ])
 
         await bot.send_message(
-            chat_id=admin_chat_id,
-            text=text,
+            text="___________________",
             parse_mode=ParseMode.HTML,
             reply_markup=keyboard
         )
-        logger.info(f"текстовое сообщение отправлено")
         if profile.get('media'):
                 media_group = []
                 for i, (media_type, file_id) in enumerate(profile['media']):
@@ -113,6 +106,8 @@ async def send_profile_to_admins(bot, profile: dict, admin_chat_id: int):
     except Exception as e:
         logger.error(f"Ошибка отправки анкеты админам: {e}", exc_info=True)
         raise
+
+
 @profile_router.callback_query(F.data == "create_profile")
 async def start_create_profile(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
