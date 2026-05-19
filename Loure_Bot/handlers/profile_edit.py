@@ -239,15 +239,15 @@ async def ask_edit_target(message: Message, state: FSMContext, current_target: s
 
 
 @edit_router.callback_query(F.data.startswith("target_"), ProfileEditing.edit_target)
-async def edit_target(callback: CallbackQuery, state: FSMContext):
+async def edit_target(callback: CallbackQuery, state: FSMContext, bot: Bot):
     await callback.answer()
     target = callback.data.split('_')[1]
     await state.update_data(edited_target=target)
-    await finish_edit_profile(callback.message, state)
+    await finish_edit_profile(callback.message, state, bot)
 
 
 @edit_router.callback_query(F.data == "skip_step", ProfileEditing.edit_target)
-async def skip_target(callback: CallbackQuery, state: FSMContext):
+async def skip_target(callback: CallbackQuery, state: FSMContext, bot: Bot):
     await callback.answer()
     data = await state.get_data()
     current = data.get('current', {})
